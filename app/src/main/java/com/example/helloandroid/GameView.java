@@ -2,7 +2,10 @@ package com.example.helloandroid;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.RectF;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
@@ -11,8 +14,12 @@ import android.view.View;
 public class GameView extends View{
     private final Movement movement = new Movement();
 
-    private float playerX = 400f;
-    private float playerY = 400f;
+    private final Bitmap playerBitmap;
+
+    private float playerX = 750f;
+    private float playerY = 2650f;
+
+    private final float playerSize = 80f;
     private boolean up,down,left,right;
     private boolean touchUp,touchDown,touchLeft,touchRight;
     private long lastFrameTime = 0L;
@@ -22,11 +29,14 @@ public class GameView extends View{
     {
         super(context);
 
+        playerBitmap = BitmapFactory.decodeResource(
+                getResources(),R.drawable.character_monster_ghost_white
+        );
+
         setFocusable(true);
         setFocusableInTouchMode(true);
         requestFocus();
         setKeepScreenOn(true);
-
 
     }
 
@@ -41,13 +51,25 @@ public class GameView extends View{
                 (now -lastFrameTime)/1_000_000_000f,0.05f);
 
         lastFrameTime = now;
+
         updatePlayer (deltaTime);
+        drawGame(canvas);
         postInvalidateOnAnimation();
     }
 
     private void drawGame(Canvas canvas)
     {
-
+        if(playerBitmap != null){
+            float halfSize = playerSize / 2f;
+            canvas.drawBitmap(playerBitmap,null,new RectF(
+                    playerX - halfSize,
+                    playerY - halfSize,
+                    playerX + halfSize,
+                    playerY + halfSize
+            ),
+                    null
+            );
+        }
     }
 
     private void updatePlayer(float deltaTime)
@@ -68,8 +90,10 @@ public class GameView extends View{
         playerX += movementAmount[0];
         playerY += movementAmount[1];
 
-        playerX = Math.max(0f,Math.min(playerX,getWidth()));
-        playerY = Math.max(0f,Math.min(playerY,getHeight()));
+        float halfSize = playerSize / 2f;
+
+        playerX = Math.max(halfSize,Math.min(playerX,getWidth()-halfSize));
+        playerY = Math.max(halfSize,Math.min(playerY,getHeight()-halfSize));
 
     }
 
@@ -161,13 +185,13 @@ public class GameView extends View{
         if(event.getAction() == MotionEvent.ACTION_DOWN||
         event.getAction() == MotionEvent.ACTION_MOVE)
         {
-            touchUp = isInsideButton(x,y,85,getHeight()-120);
+            touchUp = isInsideButton(x,y,86,getHeight()-120);
 
-            touchDown = isInsideButton(x,y,85,getHeight()-45);
+            touchDown = isInsideButton(x,y,86,getHeight()-45);
 
-            touchLeft = isInsideButton(x,y,35,getHeight()-82);
+            touchLeft = isInsideButton(x,y,36,getHeight()-82);
 
-            touchRight = isInsideButton(x,y,135,getHeight()-82);
+            touchRight = isInsideButton(x,y,136,getHeight()-82);
 
             if(event.getAction() == MotionEvent.ACTION_DOWN &&
             isInsideButton
@@ -204,7 +228,12 @@ public class GameView extends View{
 
     public boolean consumeInteractRequest()
     {
-        return interactRequested;
+        if(!interactRequested){
+            return false;
+        }
+
+        interactRequested = false;
+        return true;
     }
 
     public float getPlayerX()
