@@ -9,21 +9,56 @@ import android.graphics.RectF;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.Choreographer;
 
 
 public class GameView extends View{
     private final Movement movement = new Movement();
-
     private final Bitmap playerBitmap;
 
     private float playerX = 750f;
     private float playerY = 2650f;
-
+    private final float[] movementAmount = new float[2];
+    private boolean running = false;
+    private long lastFrameTime = 0L;
     private final float playerSize = 80f;
     private boolean up,down,left,right;
     private boolean touchUp,touchDown,touchLeft,touchRight;
-    private long lastFrameTime = 0L;
     private boolean interactRequested = false;
+
+    private final Choreographer.FrameCallback frameCallback =
+            new Choreographer.FrameCallback() {
+                @Override
+                public void doFrame(long frameTimeNanos) {
+
+                    if(!running){
+                        return;
+                    }
+
+                    float deltaTime = lastFrameTime == 0L
+                            ? 0f
+                            :Math.min((frameTimeNanos-lastFrameTime)/1_000_000_000f,
+                            0.05f);
+                    lastFrameTime = frameTimeNanos;
+                    updatePlayer(deltaTime);
+                    invalidate();
+                    Choreographer.getInstance().postFrameCallback(this);
+
+                }
+            };
+
+    @Override
+    protected void onSizeChanged(
+            int w,
+            int h,
+            int oldw,
+            int oldh
+    ) {
+        super.onSizeChanged(w,h,oldw,oldh);
+
+        playerX = w * (785f/1500f);
+        playerY = h * (2500f/2750f);
+    }
 
     public GameView(Context context)
     {
@@ -44,17 +79,7 @@ public class GameView extends View{
     protected void onDraw(Canvas canvas)
     {
         super.onDraw(canvas);
-
-        long now = System.nanoTime();
-
-        float deltaTime = lastFrameTime == 0L?0f:Math.min(
-                (now -lastFrameTime)/1_000_000_000f,0.05f);
-
-        lastFrameTime = now;
-
-        updatePlayer (deltaTime);
         drawGame(canvas);
-        postInvalidateOnAnimation();
     }
 
     private void drawGame(Canvas canvas)
@@ -79,13 +104,14 @@ public class GameView extends View{
         boolean moveLeft = left || touchLeft;
         boolean moveRight = right || touchRight;
 
-        float [] movementAmount = movement.move
-                (
-                        moveUp,
-                        moveDown,
-                        moveLeft,
-                        moveRight,
-                        deltaTime);
+        movement.move(
+                moveUp,
+                moveDown,
+                moveLeft,
+                moveRight,
+                deltaTime,
+                movementAmount
+                );
 
         playerX += movementAmount[0];
         playerY += movementAmount[1];
@@ -100,6 +126,7 @@ public class GameView extends View{
     @Override
     public boolean onKeyDown(int keyCode,KeyEvent event)
     {
+        android.util.Log.d("GAME","KEYDOWN:" + keyCode);
         switch (keyCode)
         {
             case KeyEvent.KEYCODE_DPAD_UP:
@@ -139,6 +166,7 @@ public class GameView extends View{
     @Override
     public boolean onKeyUp(int keyCode,KeyEvent event)
     {
+        android.util.Log.d("GAME","KEYUP:" + keyCode);
         switch (keyCode)
         {
             case KeyEvent.KEYCODE_W:
@@ -226,6 +254,27 @@ public class GameView extends View{
         interactRequested = true;
     }
 
+    @Override
+    protected void onAttachedToWindow(){
+        super.onAttachedToWindow();
+
+        setFocusableInTouchMode(true);
+        requestFocus();
+
+        running = true;
+        lastFrameTime = 0L;
+
+        Choreographer.getInstance().postFrameCallback(frameCallback);
+    }
+
+    @Override
+    protected void onDetachedFromWindow(){
+        running = false;
+
+        Choreographer.getInstance()
+                .removeFrameCallback(frameCallback);
+        super.onDetachedFromWindow();
+    }
     public boolean consumeInteractRequest()
     {
         if(!interactRequested){
@@ -245,5 +294,7 @@ public class GameView extends View{
     {
         return playerY;
     }
+
+
 
 }

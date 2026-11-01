@@ -20,6 +20,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView arrow;
     private int selectedItem = 0;
 
+    private GameView gameView;
+
     private boolean isGameScreen = false;
 
     @Override
@@ -86,12 +88,27 @@ public class MainActivity extends AppCompatActivity {
     }
     @Override
     public boolean dispatchKeyEvent(KeyEvent event){
-        if(isGameScreen){
-            return super.dispatchKeyEvent(event);
-        }
-        if(event.getAction() == KeyEvent.ACTION_DOWN){
+        android.util.Log.d("INPUT_TEST","MainActivity received:" + event.getKeyCode());
 
-            switch (event.getKeyCode()){
+        if(isGameScreen && gameView != null) {
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+
+                return gameView.onKeyDown(
+                        event.getKeyCode(), event
+                );
+
+            }
+
+            if (event.getAction() == KeyEvent.ACTION_UP) {
+
+                return gameView.onKeyUp(
+                        event.getKeyCode(), event
+                );
+            }
+        }
+
+        if(event.getAction() == KeyEvent.ACTION_DOWN) {
+            switch (event.getKeyCode()) {
 
                 case KeyEvent.KEYCODE_DPAD_UP:
                 case KeyEvent.KEYCODE_W:
@@ -107,16 +124,16 @@ public class MainActivity extends AppCompatActivity {
                     updateArrowPosition();
                     return true;
 
-                case KeyEvent.KEYCODE_ENTER:
                 case KeyEvent.KEYCODE_DPAD_CENTER:
+                case KeyEvent.KEYCODE_ENTER:
 
                     selectMenuItem();
                     return true;
-
             }
-
         }
+
         return super.dispatchKeyEvent(event);
+
     }
 
     private void selectMenuItem(){
@@ -158,7 +175,7 @@ public class MainActivity extends AppCompatActivity {
                 )
         );
 
-        GameView gameView = new GameView(this);
+        gameView = new GameView(this);
 
         gameContainer.addView(gameView,
                 new FrameLayout.LayoutParams(
@@ -170,8 +187,12 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(gameContainer);
 
+        gameView.setFocusable(true);
         gameView.setFocusableInTouchMode(true);
-        gameView.requestFocus();
+
+        gameView.post(() -> {
+            gameView.requestFocus();
+        });
     }
 
 }

@@ -2,34 +2,32 @@ package com.example.helloandroid;
 
 public class Movement {
 
-    public float[] move(boolean up,
-                        boolean down,
-                        boolean left,
-                        boolean right,
-                        float deltaTime)
+    private static final float MOVE_SPEED = 320f;
+    public void move(boolean up,
+                     boolean down,
+                     boolean left,
+                     boolean right,
+                     float deltaTime,
+                     float[] result)
     {
-        float dx = 0f;
-        float dy = 0f;
+        result[0]= 0f;
+        result[1]= 0f;
 
-        float moveSpeed = 240f;
         if(up)
         {
-            dy = -moveSpeed *deltaTime;
+            result[1]= -MOVE_SPEED *deltaTime;
         }
         else if(down)
         {
-            dy = moveSpeed *deltaTime;
+            result[1] = MOVE_SPEED *deltaTime;
         }
         else if(left)
         {
-            dx = -moveSpeed *deltaTime;
+            result[0] = -MOVE_SPEED *deltaTime;
         }
         else if(right)
         {
-            dx = moveSpeed *deltaTime;
+            result[0] = MOVE_SPEED *deltaTime;
         }
-
-        return new float[]{dx,dy};
     }
-
 }
