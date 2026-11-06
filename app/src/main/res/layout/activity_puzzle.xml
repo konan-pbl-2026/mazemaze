@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:background="#121212"
+    android:padding="24dp">
+
+    <!-- 通常ゲーム画面用のコンテナ -->
+    <LinearLayout
+        android:id="@+id/layoutGameContent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <!-- タイトルとタイマー -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="MAKE 24 PUZZLE"
+            android:textColor="#FF3333"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/txtTimer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="残り時間: 02:00"
+            android:textColor="#FFA500"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp" />
+
+        <!-- 結果を表示するエリア -->
+        <TextView
+            android:id="@+id/txtPuzzleResult"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="数式を入力して答え合わせを押してください"
+            android:textColor="#FF6666"
+            android:textSize="15sp"
+            android:gravity="center"
+            android:layout_marginBottom="16dp" />
+
+        <!-- 4つの数字を表示するエリア -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginBottom="20dp">
+
+            <TextView
+                android:id="@+id/num1"
+                android:layout_width="55dp"
+                android:layout_height="55dp"
+                android:gravity="center"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:background="#1E1E1E"
+                android:layout_margin="4dp" />
+
+            <TextView
+                android:id="@+id/num2"
+                android:layout_width="55dp"
+                android:layout_height="55dp"
+                android:gravity="center"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:background="#1E1E1E"
+                android:layout_margin="4dp" />
+
+            <TextView
+                android:id="@+id/num3"
+                android:layout_width="55dp"
+                android:layout_height="55dp"
+                android:gravity="center"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:background="#1E1E1E"
+                android:layout_margin="4dp" />
+
+            <TextView
+                android:id="@+id/num4"
+                android:layout_width="55dp"
+                android:layout_height="55dp"
+                android:gravity="center"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:background="#1E1E1E"
+                android:layout_margin="4dp" />
+        </LinearLayout>
+
+        <!-- 演算子や数式を入力する枠 -->
+        <EditText
+            android:id="@+id/editExpression"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="例: (3 + 5) * (1 + 2)"
+            android:textColorHint="#AAAAAA"
+            android:background="#1E1E1E"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:padding="14dp"
+            android:layout_marginBottom="20dp"
+            android:inputType="text" />
+
+        <!-- 答え合わせボタン -->
+        <Button
+            android:id="@+id/btnCheck"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="答え合わせ"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#B30000"
+            android:layout_marginBottom="10dp" />
+
+        <!-- 新しい問題ボタン -->
+        <Button
+            android:id="@+id/btnNew"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="新しい問題"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#2C2C2C"
+            android:layout_marginBottom="8dp" />
+
+        <!-- 戻るボタン -->
+        <Button
+            android:id="@+id/btnBack"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="戻る"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#2C2C2C"
+            android:layout_marginBottom="16dp" />
+
+    </LinearLayout>
+
+    <!-- 結果画面（ゲームオーバー / クリア）用のコンテナ -->
+    <LinearLayout
+        android:id="@+id/layoutResultScreen"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/txtResultTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="GAME OVER"
+            android:textColor="#FF3333"
+            android:textSize="32sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="32dp"
+            android:gravity="center" />
+
+        <TextView
+            android:id="@+id/txtResultSubMessage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="あなたは魔方陣に閉じ込められた……"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:gravity="center"
+            android:lineSpacingExtra="8dp"
+            android:layout_marginBottom="48dp" />
+
+        <Button
+            android:id="@+id/btnRetry"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="もう一度挑戦する"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#B30000"
+            android:padding="12dp" />
+
+    </LinearLayout>
+
+</LinearLayout>
