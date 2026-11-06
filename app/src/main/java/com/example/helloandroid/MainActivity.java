@@ -216,6 +216,14 @@ public class MainActivity extends Activity {
     // 起動
     // =========================
 
+    private FrameLayout container;
+    private TextView arrow;
+    private int selectedItem = 0;
+
+    private GameView gameView;
+
+    private boolean isGameScreen = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -1078,4 +1086,113 @@ public class MainActivity extends Activity {
 
         super.onDestroy();
     }
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event){
+        android.util.Log.d("INPUT_TEST","MainActivity received:" + event.getKeyCode());
+
+        if(isGameScreen && gameView != null) {
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+
+                return gameView.onKeyDown(
+                        event.getKeyCode(), event
+                );
+
+            }
+
+            if (event.getAction() == KeyEvent.ACTION_UP) {
+
+                return gameView.onKeyUp(
+                        event.getKeyCode(), event
+                );
+            }
+        }
+
+        if(event.getAction() == KeyEvent.ACTION_DOWN) {
+            switch (event.getKeyCode()) {
+
+                case KeyEvent.KEYCODE_DPAD_UP:
+                case KeyEvent.KEYCODE_W:
+
+                    selectedItem = (selectedItem + 3) % 4;
+                    updateArrowPosition();
+                    return true;
+
+                case KeyEvent.KEYCODE_DPAD_DOWN:
+                case KeyEvent.KEYCODE_S:
+
+                    selectedItem = (selectedItem + 1) % 4;
+                    updateArrowPosition();
+                    return true;
+
+                case KeyEvent.KEYCODE_DPAD_CENTER:
+                case KeyEvent.KEYCODE_ENTER:
+
+                    selectMenuItem();
+                    return true;
+            }
+        }
+
+        return super.dispatchKeyEvent(event);
+
+    }
+
+    private void selectMenuItem(){
+
+        switch (selectedItem){
+
+            case 0:
+
+                showGame();
+                break;
+
+            case 1://続きから
+
+                break;
+
+            case 2://設定
+
+                break;
+
+            case 3://やめる
+
+                finish();
+                break;
+        }
+    }
+
+    private void showGame(){
+
+        FrameLayout gameContainer = new FrameLayout(this);
+
+        ImageView map = new ImageView(this);
+        map.setImageResource(R.drawable.map);
+        map.setScaleType(ImageView.ScaleType.FIT_XY);
+
+        gameContainer.addView(
+                map,new FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                )
+        );
+
+        gameView = new GameView(this);
+
+        gameContainer.addView(gameView,
+                new FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                )
+        );
+        isGameScreen = true;
+
+        setContentView(gameContainer);
+
+        gameView.setFocusable(true);
+        gameView.setFocusableInTouchMode(true);
+
+        gameView.post(() -> {
+            gameView.requestFocus();
+        });
+    }
+
 }

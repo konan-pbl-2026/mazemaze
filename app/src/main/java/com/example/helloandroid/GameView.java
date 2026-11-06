@@ -2,31 +2,76 @@ package com.example.helloandroid;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.RectF;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.Choreographer;
 
 
 public class GameView extends View{
     private final Movement movement = new Movement();
+    private final Bitmap playerBitmap;
 
-    private float playerX = 400f;
-    private float playerY = 400f;
+    private float playerX = 750f;
+    private float playerY = 2650f;
+    private final float[] movementAmount = new float[2];
+    private boolean running = false;
+    private long lastFrameTime = 0L;
+    private final float playerSize = 80f;
     private boolean up,down,left,right;
     private boolean touchUp,touchDown,touchLeft,touchRight;
-    private long lastFrameTime = 0L;
     private boolean interactRequested = false;
+
+    private final Choreographer.FrameCallback frameCallback =
+            new Choreographer.FrameCallback() {
+                @Override
+                public void doFrame(long frameTimeNanos) {
+
+                    if(!running){
+                        return;
+                    }
+
+                    float deltaTime = lastFrameTime == 0L
+                            ? 0f
+                            :Math.min((frameTimeNanos-lastFrameTime)/1_000_000_000f,
+                            0.05f);
+                    lastFrameTime = frameTimeNanos;
+                    updatePlayer(deltaTime);
+                    invalidate();
+                    Choreographer.getInstance().postFrameCallback(this);
+
+                }
+            };
+
+    @Override
+    protected void onSizeChanged(
+            int w,
+            int h,
+            int oldw,
+            int oldh
+    ) {
+        super.onSizeChanged(w,h,oldw,oldh);
+
+        playerX = w * (785f/1500f);
+        playerY = h * (2500f/2750f);
+    }
 
     public GameView(Context context)
     {
         super(context);
 
+        playerBitmap = BitmapFactory.decodeResource(
+                getResources(),R.drawable.character_monster_ghost_white
+        );
+
         setFocusable(true);
         setFocusableInTouchMode(true);
         requestFocus();
         setKeepScreenOn(true);
-
 
     }
 
@@ -34,20 +79,22 @@ public class GameView extends View{
     protected void onDraw(Canvas canvas)
     {
         super.onDraw(canvas);
-
-        long now = System.nanoTime();
-
-        float deltaTime = lastFrameTime == 0L?0f:Math.min(
-                (now -lastFrameTime)/1_000_000_000f,0.05f);
-
-        lastFrameTime = now;
-        updatePlayer (deltaTime);
-        postInvalidateOnAnimation();
+        drawGame(canvas);
     }
 
     private void drawGame(Canvas canvas)
     {
-
+        if(playerBitmap != null){
+            float halfSize = playerSize / 2f;
+            canvas.drawBitmap(playerBitmap,null,new RectF(
+                    playerX - halfSize,
+                    playerY - halfSize,
+                    playerX + halfSize,
+                    playerY + halfSize
+            ),
+                    null
+            );
+        }
     }
 
     private void updatePlayer(float deltaTime)
@@ -57,25 +104,29 @@ public class GameView extends View{
         boolean moveLeft = left || touchLeft;
         boolean moveRight = right || touchRight;
 
-        float [] movementAmount = movement.move
-                (
-                        moveUp,
-                        moveDown,
-                        moveLeft,
-                        moveRight,
-                        deltaTime);
+        movement.move(
+                moveUp,
+                moveDown,
+                moveLeft,
+                moveRight,
+                deltaTime,
+                movementAmount
+                );
 
         playerX += movementAmount[0];
         playerY += movementAmount[1];
 
-        playerX = Math.max(0f,Math.min(playerX,getWidth()));
-        playerY = Math.max(0f,Math.min(playerY,getHeight()));
+        float halfSize = playerSize / 2f;
+
+        playerX = Math.max(halfSize,Math.min(playerX,getWidth()-halfSize));
+        playerY = Math.max(halfSize,Math.min(playerY,getHeight()-halfSize));
 
     }
 
     @Override
     public boolean onKeyDown(int keyCode,KeyEvent event)
     {
+        android.util.Log.d("GAME","KEYDOWN:" + keyCode);
         switch (keyCode)
         {
             case KeyEvent.KEYCODE_DPAD_UP:
@@ -115,6 +166,7 @@ public class GameView extends View{
     @Override
     public boolean onKeyUp(int keyCode,KeyEvent event)
     {
+        android.util.Log.d("GAME","KEYUP:" + keyCode);
         switch (keyCode)
         {
             case KeyEvent.KEYCODE_W:
@@ -161,13 +213,13 @@ public class GameView extends View{
         if(event.getAction() == MotionEvent.ACTION_DOWN||
         event.getAction() == MotionEvent.ACTION_MOVE)
         {
-            touchUp = isInsideButton(x,y,85,getHeight()-120);
+            touchUp = isInsideButton(x,y,86,getHeight()-120);
 
-            touchDown = isInsideButton(x,y,85,getHeight()-45);
+            touchDown = isInsideButton(x,y,86,getHeight()-45);
 
-            touchLeft = isInsideButton(x,y,35,getHeight()-82);
+            touchLeft = isInsideButton(x,y,36,getHeight()-82);
 
-            touchRight = isInsideButton(x,y,135,getHeight()-82);
+            touchRight = isInsideButton(x,y,136,getHeight()-82);
 
             if(event.getAction() == MotionEvent.ACTION_DOWN &&
             isInsideButton
@@ -202,9 +254,35 @@ public class GameView extends View{
         interactRequested = true;
     }
 
+    @Override
+    protected void onAttachedToWindow(){
+        super.onAttachedToWindow();
+
+        setFocusableInTouchMode(true);
+        requestFocus();
+
+        running = true;
+        lastFrameTime = 1L;
+
+        Choreographer.getInstance().postFrameCallback(frameCallback);
+    }
+
+    @Override
+    protected void onDetachedFromWindow(){
+        running = false;
+
+        Choreographer.getInstance()
+                .removeFrameCallback(frameCallback);
+        super.onDetachedFromWindow();
+    }
     public boolean consumeInteractRequest()
     {
-        return interactRequested;
+        if(!interactRequested){
+            return false;
+        }
+
+        interactRequested = false;
+        return true;
     }
 
     public float getPlayerX()
@@ -216,5 +294,7 @@ public class GameView extends View{
     {
         return playerY;
     }
+
+
 
 }
