@@ -74,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
                 0.52f,0.59f,0.66f,0.73f
         };
 
-        float arrowX = width * 0.36f;
+        float arrowX = width * 0.35f;
         float arrowY = height * updateArrowPosition[selectedItem];
 
         arrow.setX(arrowX);

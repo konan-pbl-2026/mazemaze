@@ -2,7 +2,7 @@ package com.example.helloandroid;
 
 public class Movement {
 
-    private static final float MOVE_SPEED = 320f;
+    private static final float MOVE_SPEED = 1000f;
     public void move(boolean up,
                      boolean down,
                      boolean left,

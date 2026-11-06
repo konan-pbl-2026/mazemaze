@@ -262,7 +262,7 @@ public class GameView extends View{
         requestFocus();
 
         running = true;
-        lastFrameTime = 0L;
+        lastFrameTime = 1L;
 
         Choreographer.getInstance().postFrameCallback(frameCallback);
     }
