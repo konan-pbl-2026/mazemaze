@@ -71,7 +71,7 @@ public class MainActivity extends AppCompatActivity {
         float height = container.getHeight();
 
         float[] updateArrowPosition = {
-                0.52f,0.59f,0.66f,0.73f
+                0.520f,0.59f,0.66f,0.73f
         };
 
         float arrowX = width * 0.35f;
