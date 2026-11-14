@@ -14,6 +14,16 @@ import android.view.View;
 
 public class GameView extends View {
 
+    public interface OnPuzzleRequestListener {
+        void onPuzzleRequest();
+    }
+
+    private OnPuzzleRequestListener puzzleRequestListener;
+
+    public void setOnPuzzleRequestListener(OnPuzzleRequestListener listener) {
+        puzzleRequestListener = listener;
+    }
+
     // ==============================
     // プレイヤー設定
     // ==============================
@@ -32,7 +42,8 @@ public class GameView extends View {
     private boolean touchUp, touchDown, touchLeft, touchRight;
 
     private boolean interactRequested = false;
-
+    private float puzzleStartX;
+    private float puzzleStartY;
     // ==============================
     // 敵設定
     // ==============================
@@ -373,11 +384,32 @@ public class GameView extends View {
     }
 
     private void interact() {
-        if (enemyManager.isPuzzleLocked()) {
-            return;
-        }
+        if (enemyManager.isPuzzleLocked()) return;
 
-        interactRequested = true;
+        // 浴室の星の位置
+        float starX = getWidth() * 0.78f;
+        float starY = getHeight() * 0.12f;
+
+        // プレイヤーと星の距離
+        float dx = playerX - starX;
+        float dy = playerY - starY;
+        float distance = (float) Math.sqrt(dx * dx + dy * dy);
+
+        // 星に近い場合のみパズルを起動
+        if (distance <= 120f) {
+            if (puzzleRequestListener != null) {
+
+                puzzleStartX = playerX;
+                puzzleStartY = playerY;
+
+                puzzleRequestListener.onPuzzleRequest();
+            }
+        }
+    }
+    public void restorePuzzlePosition() {
+        playerX = puzzleStartX;
+        playerY = puzzleStartY;
+        invalidate();
     }
 
     // ==============================
@@ -437,7 +469,18 @@ public class GameView extends View {
     }
 
     public void setPuzzleActive(boolean active) {
+        if (puzzleActive == active) return;
+
         puzzleActive = active;
+
+        if (active) {
+            // ★パズルへ移動する瞬間に移動フラグをリセットする
+            up = down = left = right = false;
+            touchUp = touchDown = touchLeft = touchRight = false;
+            enemyManager.onPuzzleStarted();
+        } else {
+            enemyManager.onPuzzleEnded();
+        }
     }
 
     public void setRoomId(int roomId) {

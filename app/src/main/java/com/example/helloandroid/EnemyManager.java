@@ -9,8 +9,8 @@ import java.util.Random;
 public class EnemyManager {
 
     // 時間設定
-    private static final float SPAWN_INTERVAL = 60f;
-    private static final float EXIST_TIME = 20f;
+    private static final float SPAWN_INTERVAL = 90f;
+    private static final float EXIST_TIME = 10f;
 
     // 敵の設定
     private final Bitmap enemyBitmap;
@@ -126,6 +126,14 @@ public class EnemyManager {
                     roomHeight
             );
         }
+    }
+    public void onPuzzleStarted() {
+        removeEnemy();
+        spawnTimer = 0f;
+    }
+
+    public void onPuzzleEnded() {
+        spawnTimer = 0f;
     }
 
     // 敵の出現処理
