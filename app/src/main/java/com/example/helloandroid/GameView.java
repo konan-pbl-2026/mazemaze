@@ -273,6 +273,7 @@ public class GameView extends View {
 
             case KeyEvent.KEYCODE_J:
             case KeyEvent.KEYCODE_ENTER:
+            case KeyEvent.KEYCODE_SPACE:
 
                 if (event.getRepeatCount() == 0) {
                     interact();
@@ -351,11 +352,43 @@ public class GameView extends View {
                     x, y, 136, getHeight() - 82
             );
 
-            if (event.getAction() == MotionEvent.ACTION_DOWN
-                    && isInsideButton(
-                    x, y, getWidth() - 75, getHeight() - 70
-            )) {
-                interact();
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+
+                // 風呂場の星をタップ
+                if (isInsideButton(
+                        x, y,
+                        getWidth() * 0.78f,
+                        getHeight() * 0.12f
+                )) {
+                    interact();
+                }
+
+                // 冷蔵庫の星をタップ
+                if (isInsideButton(
+                        x, y,
+                        getWidth() * 0.23f,
+                        getHeight() * 0.09f
+                )) {
+                    interact();
+                }
+
+                // テレビの星をタップ
+                if (isInsideButton(
+                        x, y,
+                        getWidth() * 0.24f,
+                        getHeight() * 0.68f
+                )) {
+                    interact();
+                }
+
+                // 画面右下の操作ボタン
+                if (isInsideButton(
+                        x, y,
+                        getWidth() - 75,
+                        getHeight() - 70
+                )) {
+                    interact();
+                }
             }
 
         } else if (event.getAction() == MotionEvent.ACTION_UP
@@ -384,28 +417,69 @@ public class GameView extends View {
     }
 
     private void interact() {
-        if (enemyManager.isPuzzleLocked()) return;
 
-        // 浴室の星の位置
+        if (enemyManager.isPuzzleLocked() || puzzleActive) return;
+
+        float dx, dy, distance;
+
+        // 冷蔵庫の星（左上）
+        float fridgeX = getWidth() * 0.23f;
+        float fridgeY = getHeight() * 0.09f;
+
+        dx = playerX - fridgeX;
+        dy = playerY - fridgeY;
+        distance = (float) Math.sqrt(dx * dx + dy * dy);
+
+        if (distance <= 120f) {
+            if (numPuzzleRequestListener != null) {
+                puzzleStartX = playerX;
+                puzzleStartY = playerY;
+                numPuzzleRequestListener.onNumPuzzleRequest();
+            }
+            return;
+        }
+
+        // 浴室の星（右上）
         float starX = getWidth() * 0.78f;
         float starY = getHeight() * 0.12f;
 
-        // プレイヤーと星の距離
-        float dx = playerX - starX;
-        float dy = playerY - starY;
-        float distance = (float) Math.sqrt(dx * dx + dy * dy);
+        dx = playerX - starX;
+        dy = playerY - starY;
+        distance = (float) Math.sqrt(dx * dx + dy * dy);
+        android.util.Log.d(
+                "BATH_TEST",
+                "player=(" + playerX + "," + playerY + ")" +
+                        " star=(" + starX + "," + starY + ")" +
+                        " distance=" + distance +
+                        " listener=" + (puzzleRequestListener != null)
+        );
 
-        // 星に近い場合のみパズルを起動
         if (distance <= 120f) {
             if (puzzleRequestListener != null) {
-
                 puzzleStartX = playerX;
                 puzzleStartY = playerY;
-
                 puzzleRequestListener.onPuzzleRequest();
+            }
+            return;
+        }
+
+        // テレビの星（左下）
+        float tvX = getWidth() * 0.24f;
+        float tvY = getHeight() * 0.68f;
+
+        dx = playerX - tvX;
+        dy = playerY - tvY;
+        distance = (float) Math.sqrt(dx * dx + dy * dy);
+
+        if (distance <= 120f) {
+            if (magicPuzzleRequestListener != null) {
+                puzzleStartX = playerX;
+                puzzleStartY = playerY;
+                magicPuzzleRequestListener.onMagicPuzzleRequest();
             }
         }
     }
+
     public void restorePuzzlePosition() {
         playerX = puzzleStartX;
         playerY = puzzleStartY;
@@ -481,6 +555,29 @@ public class GameView extends View {
         } else {
             enemyManager.onPuzzleEnded();
         }
+    }
+
+    public interface OnNumPuzzleRequestListener {
+        void onNumPuzzleRequest();
+    }
+    public interface OnMagicPuzzleRequestListener {
+        void onMagicPuzzleRequest();
+    }
+
+    private OnMagicPuzzleRequestListener magicPuzzleRequestListener;
+
+    public void setOnMagicPuzzleRequestListener(
+            OnMagicPuzzleRequestListener listener
+    ) {
+        this.magicPuzzleRequestListener = listener;
+    }
+
+    private OnNumPuzzleRequestListener numPuzzleRequestListener;
+
+    public void setOnNumPuzzleRequestListener(
+            OnNumPuzzleRequestListener listener
+    ) {
+        this.numPuzzleRequestListener = listener;
     }
 
     public void setRoomId(int roomId) {
