@@ -22,13 +22,17 @@ public class MainActivity extends AppCompatActivity {
     private int selectedItem = 0;
 
     private GameView gameView;
-
+    private ImageView mapView;
+    private AreaChange areaChange;
+    private static final int REQUEST_PUZZLE = 1;
     private boolean isGameScreen = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        //ここから下は変更
+
+        areaChange = new AreaChange();
+
         showHomeMenu();
     }
 
@@ -89,20 +93,16 @@ public class MainActivity extends AppCompatActivity {
     public boolean dispatchKeyEvent(KeyEvent event){
         android.util.Log.d("INPUT_TEST","MainActivity received:" + event.getKeyCode());
 
-        if(isGameScreen && gameView != null) {
+        if (isGameScreen && gameView != null) {
             if (event.getAction() == KeyEvent.ACTION_DOWN) {
-
-                return gameView.onKeyDown(
-                        event.getKeyCode(), event
-                );
-
+                if (gameView.onKeyDown(event.getKeyCode(), event)) {
+                    return true;
+                }
             }
-
             if (event.getAction() == KeyEvent.ACTION_UP) {
-
-                return gameView.onKeyUp(
-                        event.getKeyCode(), event
-                );
+                if (gameView.onKeyUp(event.getKeyCode(), event)) {
+                    return true;
+                }
             }
         }
 
@@ -163,18 +163,19 @@ public class MainActivity extends AppCompatActivity {
 
         FrameLayout gameContainer = new FrameLayout(this);
 
-        ImageView map = new ImageView(this);
-        map.setImageResource(R.drawable.map);
-        map.setScaleType(ImageView.ScaleType.FIT_XY);
+        mapView = new ImageView(this);
+        mapView.setImageResource(R.drawable.map);
+        mapView.setScaleType(ImageView.ScaleType.FIT_XY);
 
         gameContainer.addView(
-                map,new FrameLayout.LayoutParams(
+                mapView,new FrameLayout.LayoutParams(
                         FrameLayout.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
                 )
         );
 
         gameView = new GameView(this);
+        gameView.setOnPuzzleRequestListener(() -> openPuzzle());
 
         gameContainer.addView(gameView,
                 new FrameLayout.LayoutParams(
@@ -192,6 +193,48 @@ public class MainActivity extends AppCompatActivity {
         gameView.post(() -> {
             gameView.requestFocus();
         });
+    }
+
+    private void openPuzzle() {
+        gameView.setPuzzleActive(true);
+
+        // ★ PuzzleActivity2 を使っている場合はここを PuzzleActivity2.class に合わせる
+        Intent intent = new Intent(MainActivity.this, PuzzleActivity2.class);
+        startActivityForResult(intent, REQUEST_PUZZLE);
+    }
+
+    public void changeToPuzzleReturnMap() {
+
+        areaChange.changeArea(
+                mapView,
+                R.drawable.map_tobiranasi
+        );
+    }
+
+    @Override
+    protected void onActivityResult(
+            int requestCode,
+            int resultCode,
+            Intent data
+    ) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == REQUEST_PUZZLE) {
+
+            gameView.setPuzzleActive(false);
+            gameView.restorePuzzlePosition();
+
+            if (resultCode == RESULT_OK && mapView != null) {
+                mapView.post(() -> {
+                    areaChange.changeArea(
+                            mapView,
+                            R.drawable.map_tobiranasi
+                    );
+                    mapView.invalidate();
+                });
+                android.widget.Toast.makeText(this, "扉が開放された！", android.widget.Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
 }
