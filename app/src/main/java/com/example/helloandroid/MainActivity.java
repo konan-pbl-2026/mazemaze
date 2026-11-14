@@ -20,13 +20,17 @@ public class MainActivity extends AppCompatActivity {
     private FrameLayout container;
     private TextView arrow;
     private int selectedItem = 0;
-
+    private static final int REQUEST_NUM = 2;
     private GameView gameView;
     private ImageView mapView;
     private AreaChange areaChange;
     private static final int REQUEST_PUZZLE = 1;
     private boolean isGameScreen = false;
+    private static final int REQUEST_MAGIC = 3;
 
+    private boolean numPuzzleCleared = false;
+    private boolean puzzleCleared = false;
+    private boolean magicPuzzleCleared = false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -168,21 +172,28 @@ public class MainActivity extends AppCompatActivity {
         mapView.setScaleType(ImageView.ScaleType.FIT_XY);
 
         gameContainer.addView(
-                mapView,new FrameLayout.LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                )
-        );
-
-        gameView = new GameView(this);
-        gameView.setOnPuzzleRequestListener(() -> openPuzzle());
-
-        gameContainer.addView(gameView,
+                mapView,
                 new FrameLayout.LayoutParams(
                         FrameLayout.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
                 )
         );
+
+        // GameViewを生成してからリスナーを設定する
+        gameView = new GameView(this);
+
+        gameView.setOnPuzzleRequestListener(() -> openPuzzle());
+        gameView.setOnNumPuzzleRequestListener(() -> openNumPuzzle());
+        gameView.setOnMagicPuzzleRequestListener(() -> openMagicPuzzle());
+
+        gameContainer.addView(
+                gameView,
+                new FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT
+                )
+        );
+
         isGameScreen = true;
 
         setContentView(gameContainer);
@@ -196,11 +207,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void openPuzzle() {
+        android.util.Log.d("PUZZLE_TEST", "openPuzzle called");
+
         gameView.setPuzzleActive(true);
 
-        // ★ PuzzleActivity2 を使っている場合はここを PuzzleActivity2.class に合わせる
         Intent intent = new Intent(MainActivity.this, PuzzleActivity2.class);
-        startActivityForResult(intent, REQUEST_PUZZLE);
+
+        try {
+            startActivityForResult(intent, REQUEST_PUZZLE);
+        } catch (Exception e) {
+            android.util.Log.e("PUZZLE_TEST", "PuzzleActivity launch failed", e);
+            gameView.setPuzzleActive(false);
+        }
     }
 
     public void changeToPuzzleReturnMap() {
@@ -211,6 +229,30 @@ public class MainActivity extends AppCompatActivity {
         );
     }
 
+    private void openNumPuzzle() {
+
+        gameView.setPuzzleActive(true);
+
+        Intent intent = new Intent(
+                MainActivity.this,
+                num.class
+        );
+
+        startActivityForResult(intent, REQUEST_NUM);
+    }
+
+    private void openMagicPuzzle() {
+
+        gameView.setPuzzleActive(true);
+
+        Intent intent = new Intent(
+                MainActivity.this,
+                MagicSquareActivity.class
+        );
+
+        startActivityForResult(intent, REQUEST_MAGIC);
+    }
+
     @Override
     protected void onActivityResult(
             int requestCode,
@@ -219,20 +261,45 @@ public class MainActivity extends AppCompatActivity {
     ) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (requestCode == REQUEST_PUZZLE) {
+        if (requestCode == REQUEST_PUZZLE
+                || requestCode == REQUEST_NUM
+                || requestCode == REQUEST_MAGIC) {
 
             gameView.setPuzzleActive(false);
             gameView.restorePuzzlePosition();
 
-            if (resultCode == RESULT_OK && mapView != null) {
+            // それぞれのパズルのクリア状態を保存
+            if (resultCode == RESULT_OK) {
+
+                if (requestCode == REQUEST_PUZZLE) {
+                    puzzleCleared = true;
+
+                } else if (requestCode == REQUEST_NUM) {
+                    numPuzzleCleared = true;
+
+                } else if (requestCode == REQUEST_MAGIC) {
+                    magicPuzzleCleared = true;
+                }
+            }
+
+            // 3つすべてクリアした場合だけ扉を開く
+            if (puzzleCleared
+                    && numPuzzleCleared
+                    && magicPuzzleCleared
+                    && mapView != null) {
+
                 mapView.post(() -> {
                     areaChange.changeArea(
                             mapView,
                             R.drawable.map_tobiranasi
                     );
-                    mapView.invalidate();
                 });
-                android.widget.Toast.makeText(this, "扉が開放された！", android.widget.Toast.LENGTH_SHORT).show();
+
+                android.widget.Toast.makeText(
+                        this,
+                        "3つの謎が解けた！扉が開放された！",
+                        android.widget.Toast.LENGTH_LONG
+                ).show();
             }
         }
     }

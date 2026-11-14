@@ -922,6 +922,7 @@ public class MagicSquareActivity extends AppCompatActivity {
         }
 
         gameEnded = true;
+        setResult(clear ? RESULT_OK : RESULT_CANCELED);
 
         // タイマー停止
         handler.removeCallbacks(timerRunnable);
@@ -1028,6 +1029,21 @@ public class MagicSquareActivity extends AppCompatActivity {
 
         retry.setOnClickListener(v ->
                 resetGame());
+        Button back = createButton(
+                "マップへ戻る",
+                0xFF38445A
+        );
+
+        back.setTextColor(Color.WHITE);
+
+        LinearLayout.LayoutParams backParams =
+                new LinearLayout.LayoutParams(-1, dp(55));
+
+        backParams.setMargins(0, dp(12), 0, dp(8));
+
+        over.addView(back, backParams);
+
+        back.setOnClickListener(v -> finish());
 
         // ゲーム画面から終了画面に切り替える
         setContentView(over);
@@ -1039,6 +1055,7 @@ public class MagicSquareActivity extends AppCompatActivity {
 
     private void resetGame() {
 
+        setResult(RESULT_CANCELED);
         handler.removeCallbacks(timerRunnable);
 
         // ゲームオーバー画面から戻る場合だけ画面を切り替える
@@ -1185,6 +1202,21 @@ public class MagicSquareActivity extends AppCompatActivity {
             this.col = col;
             this.oldValue = oldValue;
         }
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(android.view.KeyEvent event) {
+
+        if (event.getAction() == android.view.KeyEvent.ACTION_DOWN
+                && event.getKeyCode()
+                == android.view.KeyEvent.KEYCODE_ESCAPE) {
+
+            setResult(RESULT_CANCELED);
+            finish();
+            return true;
+        }
+
+        return super.dispatchKeyEvent(event);
     }
 
     // ==================================
