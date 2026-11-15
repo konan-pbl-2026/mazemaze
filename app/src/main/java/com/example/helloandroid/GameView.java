@@ -18,15 +18,46 @@ public class GameView extends View {
         void onPuzzleRequest();
     }
 
+    public interface OnDoorRequestListener {
+        void onDoorRequest();
+    }
+
+    public interface OnNumPuzzleRequestListener {
+        void onNumPuzzleRequest();
+    }
+
+    public interface OnMagicPuzzleRequestListener {
+        void onMagicPuzzleRequest();
+    }
+
     private OnPuzzleRequestListener puzzleRequestListener;
+    private OnDoorRequestListener doorRequestListener;
+    private OnNumPuzzleRequestListener numPuzzleRequestListener;
+    private OnMagicPuzzleRequestListener magicPuzzleRequestListener;
 
     public void setOnPuzzleRequestListener(OnPuzzleRequestListener listener) {
         puzzleRequestListener = listener;
     }
 
-    // ==============================
+    public void setOnDoorRequestListener(OnDoorRequestListener listener) {
+        doorRequestListener = listener;
+    }
+
+    public void setOnNumPuzzleRequestListener(OnNumPuzzleRequestListener listener) {
+        numPuzzleRequestListener = listener;
+    }
+
+    public void setOnMagicPuzzleRequestListener(OnMagicPuzzleRequestListener listener) {
+        magicPuzzleRequestListener = listener;
+    }
+
+    private boolean firstFloorMode = false;
+
+    public void setFirstFloorMode(boolean mode) {
+        firstFloorMode = mode;
+    }
+
     // プレイヤー設定
-    // ==============================
 
     private final Movement movement = new Movement();
     private final Bitmap playerBitmap;
@@ -44,28 +75,20 @@ public class GameView extends View {
     private boolean interactRequested = false;
     private float puzzleStartX;
     private float puzzleStartY;
-    // ==============================
+
     // 敵設定
-    // ==============================
 
-    // 敵の画像を指定する場所
     private final Bitmap enemyBitmap;
-
     private final EnemyManager enemyManager;
 
     private static final float ENEMY_SIZE = 80f;
     private static final float ENEMY_SPEED = 100f;
     private static final float ENEMY_MIN_DISTANCE = 320f;
 
-    // 部屋番号（部屋が変わったら変更する）
     private int currentRoomId = 0;
-
-    // パズル操作中かどうか
     private boolean puzzleActive = false;
 
-    // ==============================
     // ゲームループ
-    // ==============================
 
     private boolean running = false;
     private long lastFrameTime = 0L;
@@ -83,8 +106,7 @@ public class GameView extends View {
                     float deltaTime = lastFrameTime == 0L
                             ? 0f
                             : Math.min(
-                            (frameTimeNanos - lastFrameTime)
-                                    / 1_000_000_000f,
+                            (frameTimeNanos - lastFrameTime) / 1_000_000_000f,
                             0.05f
                     );
 
@@ -92,7 +114,6 @@ public class GameView extends View {
 
                     updatePlayer(deltaTime);
 
-                    // 敵の更新
                     enemyManager.update(
                             deltaTime,
                             playerX,
@@ -104,7 +125,6 @@ public class GameView extends View {
                             puzzleActive
                     );
 
-                    // ゲームオーバー判定
                     if (enemyManager.isGameOver()) {
                         running = false;
                     }
@@ -112,33 +132,26 @@ public class GameView extends View {
                     invalidate();
 
                     if (running) {
-                        Choreographer.getInstance()
-                                .postFrameCallback(this);
+                        Choreographer.getInstance().postFrameCallback(this);
                     }
                 }
             };
 
-    // ==============================
     // コンストラクタ
-    // ==============================
 
     public GameView(Context context) {
         super(context);
 
-        // プレイヤー画像の読み込み
         playerBitmap = BitmapFactory.decodeResource(
                 getResources(),
                 R.drawable.character_monster_ghost_white
         );
 
-        // 敵画像の読み込み
-        // ★ここを自分の画像リソース名に変更する
         enemyBitmap = BitmapFactory.decodeResource(
                 getResources(),
                 R.drawable.shinigami
         );
 
-        // 敵の管理クラス
         enemyManager = new EnemyManager(
                 enemyBitmap,
                 ENEMY_SIZE,
@@ -152,34 +165,23 @@ public class GameView extends View {
         setKeepScreenOn(true);
     }
 
-    // ==============================
     // 画面サイズ変更
-    // ==============================
 
     @Override
-    protected void onSizeChanged(
-            int w,
-            int h,
-            int oldw,
-            int oldh
-    ) {
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
 
         playerX = w * (785f / 1500f);
         playerY = h * (2500f / 2750f);
     }
 
-    // ==============================
     // 描画
-    // ==============================
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
         drawGame(canvas);
-
-        // 敵の描画
         enemyManager.draw(canvas);
     }
 
@@ -198,17 +200,10 @@ public class GameView extends View {
                 playerY + halfSize
         );
 
-        canvas.drawBitmap(
-                playerBitmap,
-                null,
-                playerRect,
-                null
-        );
+        canvas.drawBitmap(playerBitmap, null, playerRect, null);
     }
 
-    // ==============================
     // プレイヤー更新
-    // ==============================
 
     private void updatePlayer(float deltaTime) {
 
@@ -231,20 +226,14 @@ public class GameView extends View {
 
         float halfSize = playerSize / 2f;
 
-        playerX = Math.max(
-                halfSize,
-                Math.min(playerX, getWidth() - halfSize)
-        );
+        playerX = Math.max(halfSize,
+                Math.min(playerX, getWidth() - halfSize));
 
-        playerY = Math.max(
-                halfSize,
-                Math.min(playerY, getHeight() - halfSize)
-        );
+        playerY = Math.max(halfSize,
+                Math.min(playerY, getHeight() - halfSize));
     }
 
-    // ==============================
     // キーボード操作
-    // ==============================
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
@@ -316,9 +305,7 @@ public class GameView extends View {
         }
     }
 
-    // ==============================
     // タッチ操作
-    // ==============================
 
     @Override
     public boolean performClick() {
@@ -336,57 +323,34 @@ public class GameView extends View {
         if (event.getAction() == MotionEvent.ACTION_DOWN
                 || event.getAction() == MotionEvent.ACTION_MOVE) {
 
-            touchUp = isInsideButton(
-                    x, y, 86, getHeight() - 120
-            );
-
-            touchDown = isInsideButton(
-                    x, y, 86, getHeight() - 45
-            );
-
-            touchLeft = isInsideButton(
-                    x, y, 36, getHeight() - 82
-            );
-
-            touchRight = isInsideButton(
-                    x, y, 136, getHeight() - 82
-            );
+            touchUp = isInsideButton(x, y, 86, getHeight() - 120);
+            touchDown = isInsideButton(x, y, 86, getHeight() - 45);
+            touchLeft = isInsideButton(x, y, 36, getHeight() - 82);
+            touchRight = isInsideButton(x, y, 136, getHeight() - 82);
 
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
 
-                // 風呂場の星をタップ
-                if (isInsideButton(
-                        x, y,
+                if (isInsideButton(x, y,
                         getWidth() * 0.78f,
-                        getHeight() * 0.12f
-                )) {
+                        getHeight() * 0.12f)) {
                     interact();
                 }
 
-                // 冷蔵庫の星をタップ
-                if (isInsideButton(
-                        x, y,
+                if (isInsideButton(x, y,
                         getWidth() * 0.23f,
-                        getHeight() * 0.09f
-                )) {
+                        getHeight() * 0.09f)) {
                     interact();
                 }
 
-                // テレビの星をタップ
-                if (isInsideButton(
-                        x, y,
+                if (isInsideButton(x, y,
                         getWidth() * 0.24f,
-                        getHeight() * 0.68f
-                )) {
+                        getHeight() * 0.68f)) {
                     interact();
                 }
 
-                // 画面右下の操作ボタン
-                if (isInsideButton(
-                        x, y,
+                if (isInsideButton(x, y,
                         getWidth() - 75,
-                        getHeight() - 70
-                )) {
+                        getHeight() - 70)) {
                     interact();
                 }
             }
@@ -416,13 +380,38 @@ public class GameView extends View {
         return dx * dx + dy * dy <= 30f * 30f;
     }
 
+    // 調べる・扉・パズル
+
     private void interact() {
 
-        if (enemyManager.isPuzzleLocked() || puzzleActive) return;
+        if (enemyManager.isPuzzleLocked() || puzzleActive) {
+            return;
+        }
 
         float dx, dy, distance;
 
-        // 冷蔵庫の星（左上）
+        float doorX;
+        float doorY;
+
+        if (firstFloorMode) {
+            doorX = getWidth() * 0.87f;
+            doorY = getHeight() * 0.77f;
+        } else {
+            doorX = getWidth() * 0.56f;
+            doorY = getHeight() * 0.12f;
+        }
+
+        dx = playerX - doorX;
+        dy = playerY - doorY;
+        distance = (float) Math.sqrt(dx * dx + dy * dy);
+
+        if (distance <= 120f && doorRequestListener != null) {
+            doorRequestListener.onDoorRequest();
+            return;
+        }
+
+        // 冷蔵庫
+
         float fridgeX = getWidth() * 0.23f;
         float fridgeY = getHeight() * 0.09f;
 
@@ -439,20 +428,14 @@ public class GameView extends View {
             return;
         }
 
-        // 浴室の星（右上）
+        // 浴室
+
         float starX = getWidth() * 0.78f;
         float starY = getHeight() * 0.12f;
 
         dx = playerX - starX;
         dy = playerY - starY;
         distance = (float) Math.sqrt(dx * dx + dy * dy);
-        android.util.Log.d(
-                "BATH_TEST",
-                "player=(" + playerX + "," + playerY + ")" +
-                        " star=(" + starX + "," + starY + ")" +
-                        " distance=" + distance +
-                        " listener=" + (puzzleRequestListener != null)
-        );
 
         if (distance <= 120f) {
             if (puzzleRequestListener != null) {
@@ -463,7 +446,8 @@ public class GameView extends View {
             return;
         }
 
-        // テレビの星（左下）
+        // テレビ
+
         float tvX = getWidth() * 0.24f;
         float tvY = getHeight() * 0.68f;
 
@@ -486,9 +470,7 @@ public class GameView extends View {
         invalidate();
     }
 
-    // ==============================
     // ゲームループ開始・終了
-    // ==============================
 
     @Override
     protected void onAttachedToWindow() {
@@ -500,8 +482,7 @@ public class GameView extends View {
         running = true;
         lastFrameTime = 0L;
 
-        Choreographer.getInstance()
-                .postFrameCallback(frameCallback);
+        Choreographer.getInstance().postFrameCallback(frameCallback);
     }
 
     @Override
@@ -509,15 +490,12 @@ public class GameView extends View {
 
         running = false;
 
-        Choreographer.getInstance()
-                .removeFrameCallback(frameCallback);
+        Choreographer.getInstance().removeFrameCallback(frameCallback);
 
         super.onDetachedFromWindow();
     }
 
-    // ==============================
     // 外部から使用するメソッド
-    // ==============================
 
     public boolean consumeInteractRequest() {
 
@@ -526,7 +504,6 @@ public class GameView extends View {
         }
 
         interactRequested = false;
-
         return true;
     }
 
@@ -543,12 +520,14 @@ public class GameView extends View {
     }
 
     public void setPuzzleActive(boolean active) {
-        if (puzzleActive == active) return;
+
+        if (puzzleActive == active) {
+            return;
+        }
 
         puzzleActive = active;
 
         if (active) {
-            // ★パズルへ移動する瞬間に移動フラグをリセットする
             up = down = left = right = false;
             touchUp = touchDown = touchLeft = touchRight = false;
             enemyManager.onPuzzleStarted();
@@ -557,30 +536,14 @@ public class GameView extends View {
         }
     }
 
-    public interface OnNumPuzzleRequestListener {
-        void onNumPuzzleRequest();
-    }
-    public interface OnMagicPuzzleRequestListener {
-        void onMagicPuzzleRequest();
-    }
-
-    private OnMagicPuzzleRequestListener magicPuzzleRequestListener;
-
-    public void setOnMagicPuzzleRequestListener(
-            OnMagicPuzzleRequestListener listener
-    ) {
-        this.magicPuzzleRequestListener = listener;
-    }
-
-    private OnNumPuzzleRequestListener numPuzzleRequestListener;
-
-    public void setOnNumPuzzleRequestListener(
-            OnNumPuzzleRequestListener listener
-    ) {
-        this.numPuzzleRequestListener = listener;
-    }
-
     public void setRoomId(int roomId) {
         currentRoomId = roomId;
     }
+
+    public void setPlayerPosition(float x, float y) {
+        playerX = getWidth() * x;
+        playerY = getHeight() * y;
+        invalidate();
+    }
 }
+
