@@ -32,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean puzzleCleared = false;
     private boolean magicPuzzleCleared = false;
     private boolean firstFloorMode = false;
+    private boolean hasKey = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -193,6 +194,7 @@ public class MainActivity extends AppCompatActivity {
         // GameViewを生成
         gameView = new GameView(this);
 
+        // パズルのリスナー
         gameView.setOnPuzzleRequestListener(() -> openPuzzle());
         gameView.setOnNumPuzzleRequestListener(() -> openNumPuzzle());
         gameView.setOnMagicPuzzleRequestListener(() -> openMagicPuzzle());
@@ -321,5 +323,24 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
+    private void showClearScreen() {
+
+        isGameScreen = false;
+
+        TextView clearText = new TextView(this);
+
+        clearText.setText(
+                "GAME CLEAR!\n\nおめでとう！\n\nゲームクリア"
+        );
+
+        clearText.setTextColor(Color.WHITE);
+        clearText.setTextSize(30);
+        clearText.setGravity(Gravity.CENTER);
+        clearText.setBackgroundColor(Color.BLACK);
+
+        setContentView(clearText);
+    }
+
 
 }

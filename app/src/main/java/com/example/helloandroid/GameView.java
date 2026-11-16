@@ -50,6 +50,13 @@ public class GameView extends View {
     public void setOnMagicPuzzleRequestListener(OnMagicPuzzleRequestListener listener) {
         magicPuzzleRequestListener = listener;
     }
+    public void setOnKeyRequestListener(OnKeyRequestListener listener) {
+        keyRequestListener = listener;
+    }
+
+    public void setFirstFloorOpenMode(boolean mode) {
+        firstFloorOpenMode = mode;
+    }
 
     private boolean firstFloorMode = false;
 
@@ -87,11 +94,13 @@ public class GameView extends View {
 
     private int currentRoomId = 0;
     private boolean puzzleActive = false;
+    private boolean firstFloorOpenMode = false;
 
     // ゲームループ
 
     private boolean running = false;
     private long lastFrameTime = 0L;
+    private OnKeyRequestListener keyRequestListener;
 
     private final Choreographer.FrameCallback frameCallback =
             new Choreographer.FrameCallback() {
@@ -142,9 +151,25 @@ public class GameView extends View {
     public GameView(Context context) {
         super(context);
 
+        // プレイヤー画像を縮小して読み込む
+        BitmapFactory.Options options = new BitmapFactory.Options();
+
+// 画像を縦横それぞれ1/8に縮小
+        options.inSampleSize = 8;
+
         playerBitmap = BitmapFactory.decodeResource(
                 getResources(),
-                R.drawable.character_monster_ghost_white
+                R.drawable.character_monster_ghost_white,
+                options
+        );
+
+// 読み込み結果を確認
+        android.util.Log.d(
+                "PLAYER_SIZE",
+                "幅：" + playerBitmap.getWidth()
+                        + " 高さ：" + playerBitmap.getHeight()
+                        + " メモリ：" + playerBitmap.getAllocationByteCount() / 1024
+                        + "KB"
         );
 
         enemyBitmap = BitmapFactory.decodeResource(
@@ -382,6 +407,7 @@ public class GameView extends View {
 
     // 調べる・扉・パズル
 
+
     private void interact() {
 
         if (enemyManager.isPuzzleLocked() || puzzleActive) {
@@ -390,6 +416,25 @@ public class GameView extends View {
 
         float dx, dy, distance;
 
+        // 宝箱（鍵の入手）
+        if (firstFloorMode && !firstFloorOpenMode) {
+
+            float chestX = getWidth() * 0.50f;
+            float chestY = getHeight() * 0.50f;
+
+            dx = playerX - chestX;
+            dy = playerY - chestY;
+            distance = (float) Math.sqrt(dx * dx + dy * dy);
+
+            if (distance <= 120f) {
+                if (keyRequestListener != null) {
+                    keyRequestListener.onKeyRequest();
+                }
+                return;
+            }
+        }
+
+        // 扉の判定
         float doorX;
         float doorY;
 
@@ -411,7 +456,6 @@ public class GameView extends View {
         }
 
         // 冷蔵庫
-
         float fridgeX = getWidth() * 0.23f;
         float fridgeY = getHeight() * 0.09f;
 
@@ -429,7 +473,6 @@ public class GameView extends View {
         }
 
         // 浴室
-
         float starX = getWidth() * 0.78f;
         float starY = getHeight() * 0.12f;
 
@@ -447,7 +490,6 @@ public class GameView extends View {
         }
 
         // テレビ
-
         float tvX = getWidth() * 0.24f;
         float tvY = getHeight() * 0.68f;
 
@@ -463,6 +505,7 @@ public class GameView extends View {
             }
         }
     }
+
 
     public void restorePuzzlePosition() {
         playerX = puzzleStartX;
@@ -544,6 +587,9 @@ public class GameView extends View {
         playerX = getWidth() * x;
         playerY = getHeight() * y;
         invalidate();
+    }
+    public interface OnKeyRequestListener {
+        void onKeyRequest();
     }
 }
 
