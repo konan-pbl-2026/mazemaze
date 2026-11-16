@@ -42,6 +42,15 @@ public class MainActivity extends AppCompatActivity {
         showHomeMenu();
     }
 
+    private void openGameClear() {
+
+        Intent intent = new Intent(
+                MainActivity.this,
+                GameClearActivity.class
+        );
+
+        startActivity(intent);
+    }
     private void showHomeMenu(){
 
         container = new FrameLayout(this);
@@ -151,7 +160,6 @@ public class MainActivity extends AppCompatActivity {
                 break;
 
             case 1://続きから
-
                 break;
 
             case 2://設定
@@ -164,6 +172,7 @@ public class MainActivity extends AppCompatActivity {
                 break;
         }
     }
+
 
     private void showGame(){
 
@@ -181,35 +190,16 @@ public class MainActivity extends AppCompatActivity {
                 )
         );
 
-        // GameViewを生成してからリスナーを設定する
+        // GameViewを生成
         gameView = new GameView(this);
 
         gameView.setOnPuzzleRequestListener(() -> openPuzzle());
         gameView.setOnNumPuzzleRequestListener(() -> openNumPuzzle());
         gameView.setOnMagicPuzzleRequestListener(() -> openMagicPuzzle());
 
+        // 玄関でEnterまたはSpaceを押したとき
         gameView.setOnDoorRequestListener(() -> {
-
-            if (!firstFloorMode) {
-
-                // map_tobiranasi → first_floar
-                areaChange.changeArea(mapView, R.drawable.first_floar);
-                firstFloorMode = true;
-                gameView.setFirstFloorMode(true);
-
-                // first_floarの上側から出現
-                gameView.setPlayerPosition(0.56f, 0.10f);
-
-            } else {
-
-                // first_floar → map_tobiranasi
-                areaChange.changeArea(mapView, R.drawable.map_tobiranasi);
-                firstFloorMode = false;
-                gameView.setFirstFloorMode(false);
-
-// map_tobiranasiの入口と同じ座標に出現
-                gameView.setPlayerPosition(0.56f, 0.12f);
-            }
+            openGameClear();
         });
 
         gameContainer.addView(
@@ -231,6 +221,7 @@ public class MainActivity extends AppCompatActivity {
             gameView.requestFocus();
         });
     }
+
 
     private void openPuzzle() {
         android.util.Log.d("PUZZLE_TEST", "openPuzzle called");
