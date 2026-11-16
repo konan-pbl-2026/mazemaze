@@ -31,6 +31,8 @@ public class MainActivity extends AppCompatActivity {
     private boolean numPuzzleCleared = false;
     private boolean puzzleCleared = false;
     private boolean magicPuzzleCleared = false;
+    private boolean firstFloorMode = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -186,6 +188,30 @@ public class MainActivity extends AppCompatActivity {
         gameView.setOnNumPuzzleRequestListener(() -> openNumPuzzle());
         gameView.setOnMagicPuzzleRequestListener(() -> openMagicPuzzle());
 
+        gameView.setOnDoorRequestListener(() -> {
+
+            if (!firstFloorMode) {
+
+                // map_tobiranasi → first_floar
+                areaChange.changeArea(mapView, R.drawable.first_floar);
+                firstFloorMode = true;
+                gameView.setFirstFloorMode(true);
+
+                // first_floarの上側から出現
+                gameView.setPlayerPosition(0.56f, 0.10f);
+
+            } else {
+
+                // first_floar → map_tobiranasi
+                areaChange.changeArea(mapView, R.drawable.map_tobiranasi);
+                firstFloorMode = false;
+                gameView.setFirstFloorMode(false);
+
+// map_tobiranasiの入口と同じ座標に出現
+                gameView.setPlayerPosition(0.56f, 0.12f);
+            }
+        });
+
         gameContainer.addView(
                 gameView,
                 new FrameLayout.LayoutParams(
@@ -235,7 +261,7 @@ public class MainActivity extends AppCompatActivity {
 
         Intent intent = new Intent(
                 MainActivity.this,
-                num.class
+                num2.class
         );
 
         startActivityForResult(intent, REQUEST_NUM);
@@ -294,6 +320,7 @@ public class MainActivity extends AppCompatActivity {
                             R.drawable.map_tobiranasi
                     );
                 });
+
 
                 android.widget.Toast.makeText(
                         this,
