@@ -151,9 +151,25 @@ public class GameView extends View {
     public GameView(Context context) {
         super(context);
 
+        // プレイヤー画像を縮小して読み込む
+        BitmapFactory.Options options = new BitmapFactory.Options();
+
+// 画像を縦横それぞれ1/8に縮小
+        options.inSampleSize = 8;
+
         playerBitmap = BitmapFactory.decodeResource(
                 getResources(),
-                R.drawable.character_monster_ghost_white
+                R.drawable.character_monster_ghost_white,
+                options
+        );
+
+// 読み込み結果を確認
+        android.util.Log.d(
+                "PLAYER_SIZE",
+                "幅：" + playerBitmap.getWidth()
+                        + " 高さ：" + playerBitmap.getHeight()
+                        + " メモリ：" + playerBitmap.getAllocationByteCount() / 1024
+                        + "KB"
         );
 
         enemyBitmap = BitmapFactory.decodeResource(
