@@ -32,6 +32,15 @@ public class GameView extends View {
 
     private OnPuzzleRequestListener puzzleRequestListener;
     private OnDoorRequestListener doorRequestListener;
+    public interface OnExitRequestListener {
+        void onExitRequest();
+    }
+
+    private OnExitRequestListener exitRequestListener;
+
+    public void setOnExitRequestListener(OnExitRequestListener listener) {
+        exitRequestListener = listener;
+    }
     private OnNumPuzzleRequestListener numPuzzleRequestListener;
     private OnMagicPuzzleRequestListener magicPuzzleRequestListener;
 
@@ -161,15 +170,6 @@ public class GameView extends View {
                 getResources(),
                 R.drawable.character_monster_ghost_white,
                 options
-        );
-
-// 読み込み結果を確認
-        android.util.Log.d(
-                "PLAYER_SIZE",
-                "幅：" + playerBitmap.getWidth()
-                        + " 高さ：" + playerBitmap.getHeight()
-                        + " メモリ：" + playerBitmap.getAllocationByteCount() / 1024
-                        + "KB"
         );
 
         enemyBitmap = BitmapFactory.decodeResource(
@@ -406,8 +406,6 @@ public class GameView extends View {
     }
 
     // 調べる・扉・パズル
-
-
     private void interact() {
 
         if (enemyManager.isPuzzleLocked() || puzzleActive) {
@@ -434,25 +432,49 @@ public class GameView extends View {
             }
         }
 
-        // 扉の判定
-        float doorX;
-        float doorY;
-
+        // 扉・玄関の判定
         if (firstFloorMode) {
-            doorX = getWidth() * 0.87f;
-            doorY = getHeight() * 0.77f;
+
+            // 1階側の出口
+            float doorX = getWidth() * 0.87f;
+            float doorY = getHeight() * 0.77f;
+
+            dx = playerX - doorX;
+            dy = playerY - doorY;
+            distance = (float) Math.sqrt(dx * dx + dy * dy);
+
+            if (distance <= 120f && doorRequestListener != null) {
+                doorRequestListener.onDoorRequest();
+                return;
+            }
+
         } else {
-            doorX = getWidth() * 0.56f;
-            doorY = getHeight() * 0.12f;
-        }
 
-        dx = playerX - doorX;
-        dy = playerY - doorY;
-        distance = (float) Math.sqrt(dx * dx + dy * dy);
+            // 下側の玄関（鍵を持っている場合のゲームクリア判定）
+            float entranceX = getWidth() * 0.523f;
+            float entranceY = getHeight() * 0.934f;
 
-        if (distance <= 120f && doorRequestListener != null) {
-            doorRequestListener.onDoorRequest();
-            return;
+            dx = playerX - entranceX;
+            dy = playerY - entranceY;
+            distance = (float) Math.sqrt(dx * dx + dy * dy);
+
+            if (distance <= 90f && exitRequestListener != null) {
+                exitRequestListener.onExitRequest();
+                return;
+            }
+
+            // 上側の扉（1階へ移動）
+            float doorX = getWidth() * 0.56f;
+            float doorY = getHeight() * 0.12f;
+
+            dx = playerX - doorX;
+            dy = playerY - doorY;
+            distance = (float) Math.sqrt(dx * dx + dy * dy);
+
+            if (distance <= 120f && doorRequestListener != null) {
+                doorRequestListener.onDoorRequest();
+                return;
+            }
         }
 
         // 冷蔵庫
@@ -505,7 +527,6 @@ public class GameView extends View {
             }
         }
     }
-
 
     public void restorePuzzlePosition() {
         playerX = puzzleStartX;

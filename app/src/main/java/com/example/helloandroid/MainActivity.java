@@ -33,6 +33,8 @@ public class MainActivity extends AppCompatActivity {
     private boolean magicPuzzleCleared = false;
     private boolean firstFloorMode = false;
     private boolean hasKey = false;
+    private float mapReturnX = 0f;
+    private float mapReturnY = 0f;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -199,9 +201,88 @@ public class MainActivity extends AppCompatActivity {
         gameView.setOnNumPuzzleRequestListener(() -> openNumPuzzle());
         gameView.setOnMagicPuzzleRequestListener(() -> openMagicPuzzle());
 
-        // 玄関でEnterまたはSpaceを押したとき
+        // 宝箱から鍵を取得
+        gameView.setOnKeyRequestListener(() -> {
+
+            if (!hasKey) {
+                hasKey = true;
+
+                areaChange.changeArea(
+                        mapView,
+                        R.drawable.first_floar_open
+                );
+
+                gameView.setFirstFloorOpenMode(true);
+
+                android.widget.Toast.makeText(
+                        this,
+                        "鍵を入手した！",
+                        android.widget.Toast.LENGTH_SHORT
+                ).show();
+            }
+        });
+
+        // 上側の扉：マップと1階を移動
+        // 1階側の出口から戻る処理もここで行う
         gameView.setOnDoorRequestListener(() -> {
-            openGameClear();
+
+            if (!firstFloorMode) {
+
+                // マップから1階へ入る前の位置を保存
+                mapReturnX = gameView.getPlayerX() / gameView.getWidth();
+                mapReturnY = gameView.getPlayerY() / gameView.getHeight();
+
+                // 鍵を持っていれば開いた状態の1階を表示
+                if (hasKey) {
+                    areaChange.changeArea(
+                            mapView,
+                            R.drawable.first_floar_open
+                    );
+                    gameView.setFirstFloorOpenMode(true);
+
+                } else {
+                    areaChange.changeArea(
+                            mapView,
+                            R.drawable.first_floar
+                    );
+                    gameView.setFirstFloorOpenMode(false);
+                }
+
+                firstFloorMode = true;
+                gameView.setFirstFloorMode(true);
+
+                // 1階に入ったときのプレイヤー位置
+                gameView.setPlayerPosition(0.56f, 0.10f);
+
+            } else {
+
+                // 1階からマップへ戻る
+                areaChange.changeArea(
+                        mapView,
+                        R.drawable.map_tobiranasi
+                );
+
+                firstFloorMode = false;
+                gameView.setFirstFloorMode(false);
+                gameView.setFirstFloorOpenMode(false);
+
+                // 入る前と同じ位置に戻す
+                gameView.setPlayerPosition(mapReturnX, mapReturnY);
+            }
+        });
+
+        // 下側の玄関：鍵を持っている場合だけクリア
+        gameView.setOnExitRequestListener(() -> {
+
+            if (hasKey) {
+                openGameClear();
+            } else {
+                android.widget.Toast.makeText(
+                        this,
+                        "鍵が必要だ！",
+                        android.widget.Toast.LENGTH_SHORT
+                ).show();
+            }
         });
 
         gameContainer.addView(
@@ -223,8 +304,6 @@ public class MainActivity extends AppCompatActivity {
             gameView.requestFocus();
         });
     }
-
-
     private void openPuzzle() {
         android.util.Log.d("PUZZLE_TEST", "openPuzzle called");
 
