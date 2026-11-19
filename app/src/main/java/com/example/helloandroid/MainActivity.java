@@ -656,7 +656,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void openGameClear() {
 
-        isGameScreen = false;
+         isGameScreen = false;
 
         Intent intent = new Intent(
                 MainActivity.this,

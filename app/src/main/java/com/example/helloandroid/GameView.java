@@ -925,7 +925,7 @@ public class GameView extends View {
 
         lastFrameTime = 0L;
 
-        Choreographer.getInstance()
+         Choreographer.getInstance()
                 .postFrameCallback(frameCallback);
     }
 
