@@ -1,4 +1,3 @@
-
 package com.example.helloandroid;
 
 import android.annotation.SuppressLint;
@@ -13,6 +12,10 @@ import android.view.MotionEvent;
 import android.view.View;
 
 public class GameView extends View {
+
+    // =================================
+    // リスナー
+    // =================================
 
     public interface OnPuzzleRequestListener {
         void onPuzzleRequest();
@@ -30,86 +33,153 @@ public class GameView extends View {
         void onMagicPuzzleRequest();
     }
 
-    private OnPuzzleRequestListener puzzleRequestListener;
-    private OnDoorRequestListener doorRequestListener;
     public interface OnExitRequestListener {
         void onExitRequest();
     }
 
-    private OnExitRequestListener exitRequestListener;
-
-    public void setOnExitRequestListener(OnExitRequestListener listener) {
-        exitRequestListener = listener;
+    public interface OnKeyRequestListener {
+        void onKeyRequest();
     }
+
+    public interface OnGameOverListener {
+        void onGameOver();
+    }
+
+    private OnPuzzleRequestListener puzzleRequestListener;
+    private OnDoorRequestListener doorRequestListener;
     private OnNumPuzzleRequestListener numPuzzleRequestListener;
     private OnMagicPuzzleRequestListener magicPuzzleRequestListener;
+    private OnDoorRequestListener doorRequestListenerUnused;
+    private OnExitRequestListener exitRequestListener;
+    private OnKeyRequestListener keyRequestListener;
+    private OnGameOverListener gameOverListener;
 
-    public void setOnPuzzleRequestListener(OnPuzzleRequestListener listener) {
+    public void setOnPuzzleRequestListener(
+            OnPuzzleRequestListener listener
+    ) {
         puzzleRequestListener = listener;
     }
 
-    public void setOnDoorRequestListener(OnDoorRequestListener listener) {
+    public void setOnDoorRequestListener(
+            OnDoorRequestListener listener
+    ) {
         doorRequestListener = listener;
     }
 
-    public void setOnNumPuzzleRequestListener(OnNumPuzzleRequestListener listener) {
+    public void setOnNumPuzzleRequestListener(
+            OnNumPuzzleRequestListener listener
+    ) {
         numPuzzleRequestListener = listener;
     }
 
-    public void setOnMagicPuzzleRequestListener(OnMagicPuzzleRequestListener listener) {
+    public void setOnMagicPuzzleRequestListener(
+            OnMagicPuzzleRequestListener listener
+    ) {
         magicPuzzleRequestListener = listener;
     }
-    public void setOnKeyRequestListener(OnKeyRequestListener listener) {
+
+    public void setOnExitRequestListener(
+            OnExitRequestListener listener
+    ) {
+        exitRequestListener = listener;
+    }
+
+    public void setOnKeyRequestListener(
+            OnKeyRequestListener listener
+    ) {
         keyRequestListener = listener;
+    }
+
+    public void setOnGameOverListener(
+            OnGameOverListener listener
+    ) {
+        gameOverListener = listener;
+    }
+
+    // =================================
+    // エリア状態
+    // =================================
+
+    private boolean firstFloorMode = false;
+    private boolean firstFloorOpenMode = false;
+
+    private int currentRoomId = 0;
+
+    public void setFirstFloorMode(boolean mode) {
+        firstFloorMode = mode;
     }
 
     public void setFirstFloorOpenMode(boolean mode) {
         firstFloorOpenMode = mode;
     }
 
-    private boolean firstFloorMode = false;
-
-    public void setFirstFloorMode(boolean mode) {
-        firstFloorMode = mode;
+    public void setRoomId(int roomId) {
+        currentRoomId = roomId;
     }
 
-    // プレイヤー設定
+    // =================================
+    // プレイヤー
+    // =================================
 
     private final Movement movement = new Movement();
+
     private final Bitmap playerBitmap;
+
     private final RectF playerRect = new RectF();
 
-    private float playerX = 750f;
-    private float playerY = 2650f;
+    private float playerX;
+    private float playerY;
 
-    private final float[] movementAmount = new float[2];
     private final float playerSize = 80f;
 
-    private boolean up, down, left, right;
-    private boolean touchUp, touchDown, touchLeft, touchRight;
+    private final float[] movementAmount = new float[2];
 
-    private boolean interactRequested = false;
-    private float puzzleStartX;
-    private float puzzleStartY;
+    private boolean up;
+    private boolean down;
+    private boolean left;
+    private boolean right;
 
-    // 敵設定
+    private boolean touchUp;
+    private boolean touchDown;
+    private boolean touchLeft;
+    private boolean touchRight;
+
+    // =================================
+    // 敵
+    // =================================
 
     private final Bitmap enemyBitmap;
+
     private final EnemyManager enemyManager;
 
     private static final float ENEMY_SIZE = 80f;
     private static final float ENEMY_SPEED = 100f;
     private static final float ENEMY_MIN_DISTANCE = 320f;
 
-    private int currentRoomId = 0;
-    private boolean puzzleActive = false;
-    private boolean firstFloorOpenMode = false;
+    // =================================
+    // パズル
+    // =================================
 
+    private boolean puzzleActive = false;
+
+    private float puzzleStartX;
+    private float puzzleStartY;
+
+    private boolean interactRequested = false;
+
+    // =================================
     // ゲームループ
+    // =================================
 
     private boolean running = false;
+
+    private boolean gameOverNotified = false;
+
     private long lastFrameTime = 0L;
-    private OnKeyRequestListener keyRequestListener;
+
+    // =================================
+    // フレーム処理
+    // =================================
 
     private final Choreographer.FrameCallback frameCallback =
             new Choreographer.FrameCallback() {
@@ -121,17 +191,35 @@ public class GameView extends View {
                         return;
                     }
 
-                    float deltaTime = lastFrameTime == 0L
-                            ? 0f
-                            : Math.min(
-                            (frameTimeNanos - lastFrameTime) / 1_000_000_000f,
-                            0.05f
-                    );
+                    if (getWidth() <= 0 || getHeight() <= 0) {
+
+                        Choreographer.getInstance()
+                                .postFrameCallback(this);
+
+                        return;
+                    }
+
+                    float deltaTime;
+
+                    if (lastFrameTime == 0L) {
+
+                        deltaTime = 0f;
+
+                    } else {
+
+                        deltaTime = Math.min(
+                                (frameTimeNanos - lastFrameTime)
+                                        / 1_000_000_000f,
+                                0.05f
+                        );
+                    }
 
                     lastFrameTime = frameTimeNanos;
 
+                    // プレイヤー更新
                     updatePlayer(deltaTime);
 
+                    // 敵更新
                     enemyManager.update(
                             deltaTime,
                             playerX,
@@ -143,27 +231,49 @@ public class GameView extends View {
                             puzzleActive
                     );
 
+                    // ゲームオーバー
                     if (enemyManager.isGameOver()) {
+
                         running = false;
+
+                        resetInput();
+
+                        if (!gameOverNotified) {
+
+                            gameOverNotified = true;
+
+                            post(() -> {
+
+                                if (gameOverListener != null) {
+
+                                    gameOverListener.onGameOver();
+                                }
+                            });
+                        }
                     }
 
                     invalidate();
 
                     if (running) {
-                        Choreographer.getInstance().postFrameCallback(this);
+
+                        Choreographer.getInstance()
+                                .postFrameCallback(this);
                     }
                 }
             };
 
+    // =================================
     // コンストラクタ
+    // =================================
 
     public GameView(Context context) {
+
         super(context);
 
-        // プレイヤー画像を縮小して読み込む
-        BitmapFactory.Options options = new BitmapFactory.Options();
+        // プレイヤー画像
+        BitmapFactory.Options options =
+                new BitmapFactory.Options();
 
-// 画像を縦横それぞれ1/8に縮小
         options.inSampleSize = 8;
 
         playerBitmap = BitmapFactory.decodeResource(
@@ -172,11 +282,13 @@ public class GameView extends View {
                 options
         );
 
+        // 敵画像
         enemyBitmap = BitmapFactory.decodeResource(
                 getResources(),
                 R.drawable.shinigami
         );
 
+        // 敵管理
         enemyManager = new EnemyManager(
                 enemyBitmap,
                 ENEMY_SIZE,
@@ -186,31 +298,47 @@ public class GameView extends View {
 
         setFocusable(true);
         setFocusableInTouchMode(true);
-        requestFocus();
+
         setKeepScreenOn(true);
     }
 
+    // =================================
     // 画面サイズ変更
+    // =================================
 
     @Override
-    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+    protected void onSizeChanged(
+            int w,
+            int h,
+            int oldw,
+            int oldh
+    ) {
+
         super.onSizeChanged(w, h, oldw, oldh);
 
         playerX = w * (785f / 1500f);
         playerY = h * (2500f / 2750f);
     }
 
+    // =================================
     // 描画
+    // =================================
 
     @Override
     protected void onDraw(Canvas canvas) {
+
         super.onDraw(canvas);
 
-        drawGame(canvas);
+        drawPlayer(canvas);
+
         enemyManager.draw(canvas);
     }
 
-    private void drawGame(Canvas canvas) {
+    // =================================
+    // プレイヤー描画
+    // =================================
+
+    private void drawPlayer(Canvas canvas) {
 
         if (playerBitmap == null) {
             return;
@@ -225,12 +353,23 @@ public class GameView extends View {
                 playerY + halfSize
         );
 
-        canvas.drawBitmap(playerBitmap, null, playerRect, null);
+        canvas.drawBitmap(
+                playerBitmap,
+                null,
+                playerRect,
+                null
+        );
     }
 
+    // =================================
     // プレイヤー更新
+    // =================================
 
     private void updatePlayer(float deltaTime) {
+
+        if (puzzleActive) {
+            return;
+        }
 
         boolean moveUp = up || touchUp;
         boolean moveDown = down || touchDown;
@@ -251,37 +390,60 @@ public class GameView extends View {
 
         float halfSize = playerSize / 2f;
 
-        playerX = Math.max(halfSize,
-                Math.min(playerX, getWidth() - halfSize));
+        playerX = Math.max(
+                halfSize,
+                Math.min(
+                        playerX,
+                        getWidth() - halfSize
+                )
+        );
 
-        playerY = Math.max(halfSize,
-                Math.min(playerY, getHeight() - halfSize));
+        playerY = Math.max(
+                halfSize,
+                Math.min(
+                        playerY,
+                        getHeight() - halfSize
+                )
+        );
     }
 
+    // =================================
     // キーボード操作
+    // =================================
 
     @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
+    public boolean onKeyDown(
+            int keyCode,
+            KeyEvent event
+    ) {
+
+        if (enemyManager.isGameOver()) {
+            return true;
+        }
 
         switch (keyCode) {
 
             case KeyEvent.KEYCODE_DPAD_UP:
             case KeyEvent.KEYCODE_W:
+
                 up = true;
                 return true;
 
             case KeyEvent.KEYCODE_DPAD_DOWN:
             case KeyEvent.KEYCODE_S:
+
                 down = true;
                 return true;
 
             case KeyEvent.KEYCODE_DPAD_LEFT:
             case KeyEvent.KEYCODE_A:
+
                 left = true;
                 return true;
 
             case KeyEvent.KEYCODE_DPAD_RIGHT:
             case KeyEvent.KEYCODE_D:
+
                 right = true;
                 return true;
 
@@ -296,45 +458,64 @@ public class GameView extends View {
                 return true;
 
             default:
-                return super.onKeyDown(keyCode, event);
+
+                return super.onKeyDown(
+                        keyCode,
+                        event
+                );
         }
     }
 
     @Override
-    public boolean onKeyUp(int keyCode, KeyEvent event) {
+    public boolean onKeyUp(
+            int keyCode,
+            KeyEvent event
+    ) {
 
         switch (keyCode) {
 
             case KeyEvent.KEYCODE_DPAD_UP:
             case KeyEvent.KEYCODE_W:
+
                 up = false;
                 return true;
 
             case KeyEvent.KEYCODE_DPAD_DOWN:
             case KeyEvent.KEYCODE_S:
+
                 down = false;
                 return true;
 
             case KeyEvent.KEYCODE_DPAD_LEFT:
             case KeyEvent.KEYCODE_A:
+
                 left = false;
                 return true;
 
             case KeyEvent.KEYCODE_DPAD_RIGHT:
             case KeyEvent.KEYCODE_D:
+
                 right = false;
                 return true;
 
             default:
-                return super.onKeyUp(keyCode, event);
+
+                return super.onKeyUp(
+                        keyCode,
+                        event
+                );
         }
     }
 
+    // =================================
     // タッチ操作
+    // =================================
 
     @Override
     public boolean performClick() {
+
         super.performClick();
+
         return true;
     }
 
@@ -342,40 +523,83 @@ public class GameView extends View {
     @Override
     public boolean onTouchEvent(MotionEvent event) {
 
+        if (enemyManager.isGameOver()) {
+            return true;
+        }
+
         float x = event.getX();
         float y = event.getY();
 
         if (event.getAction() == MotionEvent.ACTION_DOWN
                 || event.getAction() == MotionEvent.ACTION_MOVE) {
 
-            touchUp = isInsideButton(x, y, 86, getHeight() - 120);
-            touchDown = isInsideButton(x, y, 86, getHeight() - 45);
-            touchLeft = isInsideButton(x, y, 36, getHeight() - 82);
-            touchRight = isInsideButton(x, y, 136, getHeight() - 82);
+            touchUp = isInsideButton(
+                    x,
+                    y,
+                    86,
+                    getHeight() - 120
+            );
+
+            touchDown = isInsideButton(
+                    x,
+                    y,
+                    86,
+                    getHeight() - 45
+            );
+
+            touchLeft = isInsideButton(
+                    x,
+                    y,
+                    36,
+                    getHeight() - 82
+            );
+
+            touchRight = isInsideButton(
+                    x,
+                    y,
+                    136,
+                    getHeight() - 82
+            );
 
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
 
-                if (isInsideButton(x, y,
+                // 浴室
+                if (isInsideButton(
+                        x,
+                        y,
                         getWidth() * 0.78f,
-                        getHeight() * 0.12f)) {
+                        getHeight() * 0.12f
+                )) {
                     interact();
                 }
 
-                if (isInsideButton(x, y,
+                // 冷蔵庫
+                if (isInsideButton(
+                        x,
+                        y,
                         getWidth() * 0.23f,
-                        getHeight() * 0.09f)) {
+                        getHeight() * 0.09f
+                )) {
                     interact();
                 }
 
-                if (isInsideButton(x, y,
+                // テレビ
+                if (isInsideButton(
+                        x,
+                        y,
                         getWidth() * 0.24f,
-                        getHeight() * 0.68f)) {
+                        getHeight() * 0.68f
+                )) {
                     interact();
                 }
 
-                if (isInsideButton(x, y,
+                // 調べるボタン
+                if (isInsideButton(
+                        x,
+                        y,
                         getWidth() - 75,
-                        getHeight() - 70)) {
+                        getHeight() - 70
+                )) {
                     interact();
                 }
             }
@@ -383,14 +607,37 @@ public class GameView extends View {
         } else if (event.getAction() == MotionEvent.ACTION_UP
                 || event.getAction() == MotionEvent.ACTION_CANCEL) {
 
-            touchUp = false;
-            touchDown = false;
-            touchLeft = false;
-            touchRight = false;
+            resetTouchInput();
         }
 
         return true;
     }
+
+    // =================================
+    // 入力リセット
+    // =================================
+
+    private void resetTouchInput() {
+
+        touchUp = false;
+        touchDown = false;
+        touchLeft = false;
+        touchRight = false;
+    }
+
+    private void resetInput() {
+
+        up = false;
+        down = false;
+        left = false;
+        right = false;
+
+        resetTouchInput();
+    }
+
+    // =================================
+    // ボタン判定
+    // =================================
 
     private boolean isInsideButton(
             float x,
@@ -405,16 +652,24 @@ public class GameView extends View {
         return dx * dx + dy * dy <= 30f * 30f;
     }
 
-    // 調べる・扉・パズル
+    // =================================
+    // 調べる処理
+    // =================================
+
     private void interact() {
 
         if (enemyManager.isPuzzleLocked() || puzzleActive) {
             return;
         }
 
-        float dx, dy, distance;
+        float dx;
+        float dy;
+        float distance;
 
-        // 宝箱（鍵の入手）
+        // =================================
+        // 宝箱
+        // =================================
+
         if (firstFloorMode && !firstFloorOpenMode) {
 
             float chestX = getWidth() * 0.50f;
@@ -422,166 +677,185 @@ public class GameView extends View {
 
             dx = playerX - chestX;
             dy = playerY - chestY;
-            distance = (float) Math.sqrt(dx * dx + dy * dy);
+
+            distance = (float) Math.sqrt(
+                    dx * dx + dy * dy
+            );
 
             if (distance <= 120f) {
+
                 if (keyRequestListener != null) {
                     keyRequestListener.onKeyRequest();
                 }
+
                 return;
             }
         }
 
-        // 扉・玄関の判定
+        // =================================
+        // 扉・玄関
+        // =================================
+
         if (firstFloorMode) {
 
             // 1階側の出口
+
             float doorX = getWidth() * 0.87f;
             float doorY = getHeight() * 0.77f;
 
             dx = playerX - doorX;
             dy = playerY - doorY;
-            distance = (float) Math.sqrt(dx * dx + dy * dy);
 
-            if (distance <= 120f && doorRequestListener != null) {
+            distance = (float) Math.sqrt(
+                    dx * dx + dy * dy
+            );
+
+            if (distance <= 120f
+                    && doorRequestListener != null) {
+
                 doorRequestListener.onDoorRequest();
+
                 return;
             }
 
         } else {
 
-            // 下側の玄関（鍵を持っている場合のゲームクリア判定）
+            // 下側の玄関
+
             float entranceX = getWidth() * 0.523f;
             float entranceY = getHeight() * 0.934f;
 
             dx = playerX - entranceX;
             dy = playerY - entranceY;
-            distance = (float) Math.sqrt(dx * dx + dy * dy);
 
-            if (distance <= 90f && exitRequestListener != null) {
+            distance = (float) Math.sqrt(
+                    dx * dx + dy * dy
+            );
+
+            if (distance <= 90f
+                    && exitRequestListener != null) {
+
                 exitRequestListener.onExitRequest();
+
                 return;
             }
 
-            // 上側の扉（1階へ移動）
+            // 上側の扉
+
             float doorX = getWidth() * 0.56f;
             float doorY = getHeight() * 0.12f;
 
             dx = playerX - doorX;
             dy = playerY - doorY;
-            distance = (float) Math.sqrt(dx * dx + dy * dy);
 
-            if (distance <= 120f && doorRequestListener != null) {
+            distance = (float) Math.sqrt(
+                    dx * dx + dy * dy
+            );
+
+            if (distance <= 120f
+                    && doorRequestListener != null) {
+
                 doorRequestListener.onDoorRequest();
+
                 return;
             }
         }
 
+        // =================================
         // 冷蔵庫
+        // =================================
+
         float fridgeX = getWidth() * 0.23f;
         float fridgeY = getHeight() * 0.09f;
 
         dx = playerX - fridgeX;
         dy = playerY - fridgeY;
-        distance = (float) Math.sqrt(dx * dx + dy * dy);
+
+        distance = (float) Math.sqrt(
+                dx * dx + dy * dy
+        );
 
         if (distance <= 120f) {
+
             if (numPuzzleRequestListener != null) {
+
                 puzzleStartX = playerX;
                 puzzleStartY = playerY;
+
                 numPuzzleRequestListener.onNumPuzzleRequest();
             }
+
             return;
         }
 
+        // =================================
         // 浴室
+        // =================================
+
         float starX = getWidth() * 0.78f;
         float starY = getHeight() * 0.12f;
 
         dx = playerX - starX;
         dy = playerY - starY;
-        distance = (float) Math.sqrt(dx * dx + dy * dy);
+
+        distance = (float) Math.sqrt(
+                dx * dx + dy * dy
+        );
 
         if (distance <= 120f) {
+
             if (puzzleRequestListener != null) {
+
                 puzzleStartX = playerX;
                 puzzleStartY = playerY;
+
                 puzzleRequestListener.onPuzzleRequest();
             }
+
             return;
         }
 
+        // =================================
         // テレビ
+        // =================================
+
         float tvX = getWidth() * 0.24f;
         float tvY = getHeight() * 0.68f;
 
         dx = playerX - tvX;
         dy = playerY - tvY;
-        distance = (float) Math.sqrt(dx * dx + dy * dy);
+
+        distance = (float) Math.sqrt(
+                dx * dx + dy * dy
+        );
 
         if (distance <= 120f) {
+
             if (magicPuzzleRequestListener != null) {
+
                 puzzleStartX = playerX;
                 puzzleStartY = playerY;
+
                 magicPuzzleRequestListener.onMagicPuzzleRequest();
             }
         }
     }
 
+    // =================================
+    // パズル終了後の位置復元
+    // =================================
+
     public void restorePuzzlePosition() {
+
         playerX = puzzleStartX;
         playerY = puzzleStartY;
+
         invalidate();
     }
 
-    // ゲームループ開始・終了
-
-    @Override
-    protected void onAttachedToWindow() {
-        super.onAttachedToWindow();
-
-        setFocusableInTouchMode(true);
-        requestFocus();
-
-        running = true;
-        lastFrameTime = 0L;
-
-        Choreographer.getInstance().postFrameCallback(frameCallback);
-    }
-
-    @Override
-    protected void onDetachedFromWindow() {
-
-        running = false;
-
-        Choreographer.getInstance().removeFrameCallback(frameCallback);
-
-        super.onDetachedFromWindow();
-    }
-
-    // 外部から使用するメソッド
-
-    public boolean consumeInteractRequest() {
-
-        if (!interactRequested) {
-            return false;
-        }
-
-        interactRequested = false;
-        return true;
-    }
-
-    public float getPlayerX() {
-        return playerX;
-    }
-
-    public float getPlayerY() {
-        return playerY;
-    }
-
-    public boolean isGameOver() {
-        return enemyManager.isGameOver();
-    }
+    // =================================
+    // パズル状態
+    // =================================
 
     public void setPuzzleActive(boolean active) {
 
@@ -592,25 +866,96 @@ public class GameView extends View {
         puzzleActive = active;
 
         if (active) {
-            up = down = left = right = false;
-            touchUp = touchDown = touchLeft = touchRight = false;
+
+            resetInput();
+
             enemyManager.onPuzzleStarted();
+
         } else {
+
             enemyManager.onPuzzleEnded();
         }
     }
 
-    public void setRoomId(int roomId) {
-        currentRoomId = roomId;
+    // =================================
+    // プレイヤー位置取得
+    // =================================
+
+    public float getPlayerX() {
+        return playerX;
     }
+
+    public float getPlayerY() {
+        return playerY;
+    }
+
+    // =================================
+    // プレイヤー位置変更
+    // =================================
 
     public void setPlayerPosition(float x, float y) {
+
         playerX = getWidth() * x;
         playerY = getHeight() * y;
+
         invalidate();
     }
-    public interface OnKeyRequestListener {
-        void onKeyRequest();
+
+    // =================================
+    // ゲームオーバー確認
+    // =================================
+
+    public boolean isGameOver() {
+        return enemyManager.isGameOver();
+    }
+
+    // =================================
+    // ゲームループ開始
+    // =================================
+
+    @Override
+    protected void onAttachedToWindow() {
+
+        super.onAttachedToWindow();
+
+        setFocusableInTouchMode(true);
+        requestFocus();
+
+        running = true;
+
+        lastFrameTime = 0L;
+
+         Choreographer.getInstance()
+                .postFrameCallback(frameCallback);
+    }
+
+    // =================================
+    // ゲームループ終了
+    // =================================
+
+    @Override
+    protected void onDetachedFromWindow() {
+
+        running = false;
+
+        Choreographer.getInstance()
+                .removeFrameCallback(frameCallback);
+
+        super.onDetachedFromWindow();
+    }
+
+    // =================================
+    // 操作要求の取得
+    // =================================
+
+    public boolean consumeInteractRequest() {
+
+        if (!interactRequested) {
+            return false;
+        }
+
+        interactRequested = false;
+
+        return true;
     }
 }
-

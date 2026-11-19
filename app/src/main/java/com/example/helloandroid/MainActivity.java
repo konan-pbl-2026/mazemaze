@@ -1,40 +1,68 @@
-
 package com.example.helloandroid;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.graphics.Color;
 import android.view.Gravity;
 import android.view.KeyEvent;
-import android.view.View;
-import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
 
+    // =================================
+    // リクエストコード
+    // =================================
+
+    private static final int REQUEST_PUZZLE = 1;
+    private static final int REQUEST_NUM = 2;
+    private static final int REQUEST_MAGIC = 3;
+    private static final int REQUEST_GAME_OVER = 4;
+
+    // =================================
+    // 画面管理
+    // =================================
+
     private FrameLayout container;
     private TextView arrow;
-    private int selectedItem = 0;
-    private static final int REQUEST_NUM = 2;
+
     private GameView gameView;
     private ImageView mapView;
-    private AreaChange areaChange;
-    private static final int REQUEST_PUZZLE = 1;
-    private boolean isGameScreen = false;
-    private static final int REQUEST_MAGIC = 3;
 
-    private boolean numPuzzleCleared = false;
+    private AreaChange areaChange;
+
+    private boolean isGameScreen = false;
+
+    // ゲームオーバー画面の二重起動防止
+    private boolean gameOverOpened = false;
+
+    // =================================
+    // タイトル画面
+    // =================================
+
+    private int selectedItem = 0;
+
+    // =================================
+    // ゲーム状態
+    // =================================
+
     private boolean puzzleCleared = false;
+    private boolean numPuzzleCleared = false;
     private boolean magicPuzzleCleared = false;
+
     private boolean firstFloorMode = false;
     private boolean hasKey = false;
+
     private float mapReturnX = 0f;
     private float mapReturnY = 0f;
+
+    // =================================
+    // Activity開始
+    // =================================
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,24 +73,24 @@ public class MainActivity extends AppCompatActivity {
         showHomeMenu();
     }
 
-    private void openGameClear() {
+    // =================================
+    // タイトル画面
+    // =================================
 
-        Intent intent = new Intent(
-                MainActivity.this,
-                GameClearActivity.class
-        );
+    private void showHomeMenu() {
 
-        startActivity(intent);
-    }
-    private void showHomeMenu(){
+        isGameScreen = false;
+        selectedItem = 0;
 
         container = new FrameLayout(this);
 
         ImageView background = new ImageView(this);
+
         background.setImageResource(R.drawable.homemenu);
         background.setScaleType(ImageView.ScaleType.FIT_XY);
 
-        container.addView(background,
+        container.addView(
+                background,
                 new FrameLayout.LayoutParams(
                         FrameLayout.LayoutParams.MATCH_PARENT,
                         FrameLayout.LayoutParams.MATCH_PARENT
@@ -70,61 +98,90 @@ public class MainActivity extends AppCompatActivity {
         );
 
         arrow = new TextView(this);
+
         arrow.setText("→");
         arrow.setTextColor(Color.WHITE);
         arrow.setTextSize(24);
         arrow.setGravity(Gravity.CENTER);
 
-        container.addView(arrow);
+        FrameLayout.LayoutParams arrowParams =
+                new FrameLayout.LayoutParams(
+                        100,
+                        100
+                );
+
+        container.addView(arrow, arrowParams);
 
         setContentView(container);
 
-        container.post(() -> updateArrowPosition());
-
+        container.post(this::updateArrowPosition);
     }
 
+    // =================================
+    // 矢印の位置
+    // =================================
+
     private void updateArrowPosition() {
-        if(arrow == null || container == null){
+
+        if (arrow == null || container == null) {
             return;
         }
 
         float width = container.getWidth();
         float height = container.getHeight();
 
-        float[] updateArrowPosition = {
-                0.520f,0.59f,0.66f,0.73f
+        if (width == 0 || height == 0) {
+            return;
+        }
+
+        float[] positions = {
+                0.520f,
+                0.59f,
+                0.66f,
+                0.73f
         };
 
         float arrowX = width * 0.35f;
-        float arrowY = height * updateArrowPosition[selectedItem];
+        float arrowY = height * positions[selectedItem];
 
         arrow.setX(arrowX);
         arrow.setY(arrowY);
-
-        arrow.setLayoutParams(
-                new FrameLayout.LayoutParams(
-                        (int)(width * 0.07f),(int)(height * 0.09f)
-                )
-        );
     }
-    @Override
-    public boolean dispatchKeyEvent(KeyEvent event){
-        android.util.Log.d("INPUT_TEST","MainActivity received:" + event.getKeyCode());
 
+    // =================================
+    // キーボード操作
+    // =================================
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+
+        // ゲーム中の操作
         if (isGameScreen && gameView != null) {
+
             if (event.getAction() == KeyEvent.ACTION_DOWN) {
-                if (gameView.onKeyDown(event.getKeyCode(), event)) {
+
+                if (gameView.onKeyDown(
+                        event.getKeyCode(),
+                        event
+                )) {
                     return true;
                 }
-            }
-            if (event.getAction() == KeyEvent.ACTION_UP) {
-                if (gameView.onKeyUp(event.getKeyCode(), event)) {
+
+            } else if (event.getAction() == KeyEvent.ACTION_UP) {
+
+                if (gameView.onKeyUp(
+                        event.getKeyCode(),
+                        event
+                )) {
                     return true;
                 }
             }
         }
 
-        if(event.getAction() == KeyEvent.ACTION_DOWN) {
+        // タイトル画面の操作
+        if (!isGameScreen
+                && event.getAction() == KeyEvent.ACTION_DOWN) {
+
             switch (event.getKeyCode()) {
 
                 case KeyEvent.KEYCODE_DPAD_UP:
@@ -132,6 +189,7 @@ public class MainActivity extends AppCompatActivity {
 
                     selectedItem = (selectedItem + 3) % 4;
                     updateArrowPosition();
+
                     return true;
 
                 case KeyEvent.KEYCODE_DPAD_DOWN:
@@ -139,49 +197,100 @@ public class MainActivity extends AppCompatActivity {
 
                     selectedItem = (selectedItem + 1) % 4;
                     updateArrowPosition();
+
                     return true;
 
                 case KeyEvent.KEYCODE_DPAD_CENTER:
                 case KeyEvent.KEYCODE_ENTER:
 
                     selectMenuItem();
+
                     return true;
             }
         }
 
         return super.dispatchKeyEvent(event);
-
     }
 
-    private void selectMenuItem(){
+    // =================================
+    // メニュー選択
+    // =================================
 
-        switch (selectedItem){
+    private void selectMenuItem() {
+
+        switch (selectedItem) {
 
             case 0:
 
+                resetGame();
                 showGame();
-                break;
-
-            case 1://続きから
-                break;
-
-            case 2://設定
 
                 break;
 
-            case 3://やめる
+            case 1:
+
+                Toast.makeText(
+                        this,
+                        "続きからはまだ実装されていません",
+                        Toast.LENGTH_SHORT
+                ).show();
+
+                break;
+
+            case 2:
+
+                Toast.makeText(
+                        this,
+                        "設定はまだ実装されていません",
+                        Toast.LENGTH_SHORT
+                ).show();
+
+                break;
+
+            case 3:
 
                 finish();
+
                 break;
         }
     }
 
+    // =================================
+    // ゲーム状態の初期化
+    // =================================
 
-    private void showGame(){
+    private void resetGame() {
+
+        puzzleCleared = false;
+        numPuzzleCleared = false;
+        magicPuzzleCleared = false;
+
+        firstFloorMode = false;
+        hasKey = false;
+
+        mapReturnX = 0f;
+        mapReturnY = 0f;
+
+        gameOverOpened = false;
+    }
+
+    // =================================
+    // ゲーム画面
+    // =================================
+
+    private void showGame() {
+
+        isGameScreen = true;
+        gameOverOpened = false;
 
         FrameLayout gameContainer = new FrameLayout(this);
 
+        // =================================
+        // マップ
+        // =================================
+
         mapView = new ImageView(this);
+
         mapView.setImageResource(R.drawable.map);
         mapView.setScaleType(ImageView.ScaleType.FIT_XY);
 
@@ -189,101 +298,180 @@ public class MainActivity extends AppCompatActivity {
                 mapView,
                 new FrameLayout.LayoutParams(
                         FrameLayout.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
+                        FrameLayout.LayoutParams.MATCH_PARENT
                 )
         );
 
-        // GameViewを生成
+        // =================================
+        // GameView
+        // =================================
+
         gameView = new GameView(this);
 
-        // パズルのリスナー
-        gameView.setOnPuzzleRequestListener(() -> openPuzzle());
-        gameView.setOnNumPuzzleRequestListener(() -> openNumPuzzle());
-        gameView.setOnMagicPuzzleRequestListener(() -> openMagicPuzzle());
+        // =================================
+        // ゲームオーバー
+        // =================================
 
-        // 宝箱から鍵を取得
+        gameView.setOnGameOverListener(() -> {
+
+            // 二重起動を防止
+            if (gameOverOpened) {
+                return;
+            }
+
+            gameOverOpened = true;
+
+            // ゲーム画面ではなくする
+            isGameScreen = false;
+
+            // ゲームオーバー画面を起動
+            Intent intent = new Intent(
+                    MainActivity.this,
+                    GameOverActivity.class
+            );
+
+            startActivityForResult(
+                    intent,
+                    REQUEST_GAME_OVER
+            );
+        });
+
+        // =================================
+        // パズル
+        // =================================
+
+        gameView.setOnPuzzleRequestListener(
+                this::openPuzzle
+        );
+
+        gameView.setOnNumPuzzleRequestListener(
+                this::openNumPuzzle
+        );
+
+        gameView.setOnMagicPuzzleRequestListener(
+                this::openMagicPuzzle
+        );
+
+        // =================================
+        // 鍵の取得
+        // =================================
+
         gameView.setOnKeyRequestListener(() -> {
 
             if (!hasKey) {
+
                 hasKey = true;
+
+                gameView.setFirstFloorOpenMode(true);
 
                 areaChange.changeArea(
                         mapView,
                         R.drawable.first_floar_open
                 );
 
-                gameView.setFirstFloorOpenMode(true);
-
-                android.widget.Toast.makeText(
+                Toast.makeText(
                         this,
                         "鍵を入手した！",
-                        android.widget.Toast.LENGTH_SHORT
+                        Toast.LENGTH_SHORT
                 ).show();
             }
         });
 
-        // 上側の扉：マップと1階を移動
-        // 1階側の出口から戻る処理もここで行う
+        // =================================
+        // 扉
+        // =================================
+
         gameView.setOnDoorRequestListener(() -> {
 
             if (!firstFloorMode) {
 
-                // マップから1階へ入る前の位置を保存
-                mapReturnX = gameView.getPlayerX() / gameView.getWidth();
-                mapReturnY = gameView.getPlayerY() / gameView.getHeight();
+                // マップから1階へ移動
 
-                // 鍵を持っていれば開いた状態の1階を表示
+                if (gameView.getWidth() > 0
+                        && gameView.getHeight() > 0) {
+
+                    mapReturnX =
+                            gameView.getPlayerX()
+                                    / gameView.getWidth();
+
+                    mapReturnY =
+                            gameView.getPlayerY()
+                                    / gameView.getHeight();
+                }
+
+                // 1階の背景
                 if (hasKey) {
+
                     areaChange.changeArea(
                             mapView,
                             R.drawable.first_floar_open
                     );
+
                     gameView.setFirstFloorOpenMode(true);
 
                 } else {
+
                     areaChange.changeArea(
                             mapView,
                             R.drawable.first_floar
                     );
+
                     gameView.setFirstFloorOpenMode(false);
                 }
 
                 firstFloorMode = true;
+
                 gameView.setFirstFloorMode(true);
 
-                // 1階に入ったときのプレイヤー位置
-                gameView.setPlayerPosition(0.56f, 0.10f);
+                gameView.setPlayerPosition(
+                        0.56f,
+                        0.10f
+                );
 
             } else {
 
                 // 1階からマップへ戻る
+
                 areaChange.changeArea(
                         mapView,
                         R.drawable.map_tobiranasi
                 );
 
                 firstFloorMode = false;
+
                 gameView.setFirstFloorMode(false);
                 gameView.setFirstFloorOpenMode(false);
 
-                // 入る前と同じ位置に戻す
-                gameView.setPlayerPosition(mapReturnX, mapReturnY);
+                gameView.setPlayerPosition(
+                        mapReturnX,
+                        mapReturnY
+                );
             }
         });
 
-        // 下側の玄関：鍵を持っている場合だけクリア
+        // =================================
+        // 玄関
+        // =================================
+
         gameView.setOnExitRequestListener(() -> {
 
             if (hasKey) {
+
                 openGameClear();
+
             } else {
-                android.widget.Toast.makeText(
+
+                Toast.makeText(
                         this,
                         "鍵が必要だ！",
-                        android.widget.Toast.LENGTH_SHORT
+                        Toast.LENGTH_SHORT
                 ).show();
             }
         });
+
+        // =================================
+        // GameViewを追加
+        // =================================
 
         gameContainer.addView(
                 gameView,
@@ -293,41 +481,46 @@ public class MainActivity extends AppCompatActivity {
                 )
         );
 
-        isGameScreen = true;
-
         setContentView(gameContainer);
 
         gameView.setFocusable(true);
         gameView.setFocusableInTouchMode(true);
 
-        gameView.post(() -> {
-            gameView.requestFocus();
-        });
+        gameView.post(() -> gameView.requestFocus());
     }
+
+    // =================================
+    // パズル1
+    // =================================
+
     private void openPuzzle() {
-        android.util.Log.d("PUZZLE_TEST", "openPuzzle called");
+
+        if (gameView == null) {
+            return;
+        }
 
         gameView.setPuzzleActive(true);
 
-        Intent intent = new Intent(MainActivity.this, PuzzleActivity2.class);
+        Intent intent = new Intent(
+                MainActivity.this,
+                PuzzleActivity2.class
+        );
 
-        try {
-            startActivityForResult(intent, REQUEST_PUZZLE);
-        } catch (Exception e) {
-            android.util.Log.e("PUZZLE_TEST", "PuzzleActivity launch failed", e);
-            gameView.setPuzzleActive(false);
-        }
-    }
-
-    public void changeToPuzzleReturnMap() {
-
-        areaChange.changeArea(
-                mapView,
-                R.drawable.map_tobiranasi
+        startActivityForResult(
+                intent,
+                REQUEST_PUZZLE
         );
     }
 
+    // =================================
+    // パズル2
+    // =================================
+
     private void openNumPuzzle() {
+
+        if (gameView == null) {
+            return;
+        }
 
         gameView.setPuzzleActive(true);
 
@@ -336,10 +529,21 @@ public class MainActivity extends AppCompatActivity {
                 num2.class
         );
 
-        startActivityForResult(intent, REQUEST_NUM);
+        startActivityForResult(
+                intent,
+                REQUEST_NUM
+        );
     }
 
+    // =================================
+    // パズル3
+    // =================================
+
     private void openMagicPuzzle() {
+
+        if (gameView == null) {
+            return;
+        }
 
         gameView.setPuzzleActive(true);
 
@@ -348,8 +552,15 @@ public class MainActivity extends AppCompatActivity {
                 MagicSquareActivity.class
         );
 
-        startActivityForResult(intent, REQUEST_MAGIC);
+        startActivityForResult(
+                intent,
+                REQUEST_MAGIC
+        );
     }
+
+    // =================================
+    // パズル・ゲームオーバー終了
+    // =================================
 
     @Override
     protected void onActivityResult(
@@ -357,69 +568,120 @@ public class MainActivity extends AppCompatActivity {
             int resultCode,
             Intent data
     ) {
-        super.onActivityResult(requestCode, resultCode, data);
+
+        super.onActivityResult(
+                requestCode,
+                resultCode,
+                data
+        );
+
+        // =================================
+        // ゲームオーバー終了後
+        // =================================
+
+        if (requestCode == REQUEST_GAME_OVER) {
+
+            if (resultCode == RESULT_OK) {
+
+                // 古いゲーム画面への参照を解除
+                gameView = null;
+                mapView = null;
+
+                // タイトル画面へ戻る
+                resetGame();
+                showHomeMenu();
+            }
+
+            return;
+        }
+
+        // =================================
+        // パズル終了後
+        // =================================
 
         if (requestCode == REQUEST_PUZZLE
                 || requestCode == REQUEST_NUM
                 || requestCode == REQUEST_MAGIC) {
 
+            if (gameView == null) {
+                return;
+            }
+
             gameView.setPuzzleActive(false);
+
             gameView.restorePuzzlePosition();
 
-            // それぞれのパズルのクリア状態を保存
+            // クリア状態を保存
             if (resultCode == RESULT_OK) {
 
                 if (requestCode == REQUEST_PUZZLE) {
+
                     puzzleCleared = true;
 
                 } else if (requestCode == REQUEST_NUM) {
+
                     numPuzzleCleared = true;
 
                 } else if (requestCode == REQUEST_MAGIC) {
+
                     magicPuzzleCleared = true;
                 }
             }
 
-            // 3つすべてクリアした場合だけ扉を開く
+            // 3つのパズルをクリア
             if (puzzleCleared
                     && numPuzzleCleared
-                    && magicPuzzleCleared
-                    && mapView != null) {
+                    && magicPuzzleCleared) {
 
-                mapView.post(() -> {
+                Toast.makeText(
+                        this,
+                        "3つの謎が解けた！",
+                        Toast.LENGTH_LONG
+                ).show();
+
+                if (mapView != null) {
+
                     areaChange.changeArea(
                             mapView,
                             R.drawable.map_tobiranasi
                     );
-                });
-
-
-                android.widget.Toast.makeText(
-                        this,
-                        "3つの謎が解けた！扉が開放された！",
-                        android.widget.Toast.LENGTH_LONG
-                ).show();
+                }
             }
         }
     }
 
-    private void showClearScreen() {
+    // =================================
+    // ゲームクリア
+    // =================================
 
-        isGameScreen = false;
+    private void openGameClear() {
 
-        TextView clearText = new TextView(this);
+         isGameScreen = false;
 
-        clearText.setText(
-                "GAME CLEAR!\n\nおめでとう！\n\nゲームクリア"
+        Intent intent = new Intent(
+                MainActivity.this,
+                GameClearActivity.class
         );
 
-        clearText.setTextColor(Color.WHITE);
-        clearText.setTextSize(30);
-        clearText.setGravity(Gravity.CENTER);
-        clearText.setBackgroundColor(Color.BLACK);
-
-        setContentView(clearText);
+        startActivity(intent);
     }
 
+    // =================================
+    // 戻るボタン
+    // =================================
 
+    @Override
+    public void onBackPressed() {
+
+        if (isGameScreen) {
+
+            isGameScreen = false;
+
+            showHomeMenu();
+
+        } else {
+
+            super.onBackPressed();
+        }
+    }
 }
