@@ -1,3 +1,4 @@
+
 package com.example.helloandroid;
 
 import android.annotation.SuppressLint;
@@ -423,6 +424,7 @@ public class GameView extends View {
 
         switch (keyCode) {
 
+            // 移動
             case KeyEvent.KEYCODE_DPAD_UP:
             case KeyEvent.KEYCODE_W:
 
@@ -447,6 +449,58 @@ public class GameView extends View {
                 right = true;
                 return true;
 
+            // ナンプレ（Zキー）
+            case KeyEvent.KEYCODE_Z:
+
+                if (event.getRepeatCount() == 0
+                        && !puzzleActive
+                        && !enemyManager.isPuzzleLocked()) {
+
+                    puzzleStartX = playerX;
+                    puzzleStartY = playerY;
+
+                    if (numPuzzleRequestListener != null) {
+                        numPuzzleRequestListener.onNumPuzzleRequest();
+                    }
+                }
+
+                return true;
+
+            // 魔法陣（Xキー）
+            case KeyEvent.KEYCODE_X:
+
+                if (event.getRepeatCount() == 0
+                        && !puzzleActive
+                        && !enemyManager.isPuzzleLocked()) {
+
+                    puzzleStartX = playerX;
+                    puzzleStartY = playerY;
+
+                    if (magicPuzzleRequestListener != null) {
+                        magicPuzzleRequestListener.onMagicPuzzleRequest();
+                    }
+                }
+
+                return true;
+
+            // 24パズル（Cキー）
+            case KeyEvent.KEYCODE_C:
+
+                if (event.getRepeatCount() == 0
+                        && !puzzleActive
+                        && !enemyManager.isPuzzleLocked()) {
+
+                    puzzleStartX = playerX;
+                    puzzleStartY = playerY;
+
+                    if (puzzleRequestListener != null) {
+                        puzzleRequestListener.onPuzzleRequest();
+                    }
+                }
+
+                return true;
+
+            // 通常の調べる操作
             case KeyEvent.KEYCODE_J:
             case KeyEvent.KEYCODE_ENTER:
             case KeyEvent.KEYCODE_SPACE:
@@ -666,10 +720,7 @@ public class GameView extends View {
         float dy;
         float distance;
 
-        // =================================
         // 宝箱
-        // =================================
-
         if (firstFloorMode && !firstFloorOpenMode) {
 
             float chestX = getWidth() * 0.50f;
@@ -692,14 +743,10 @@ public class GameView extends View {
             }
         }
 
-        // =================================
         // 扉・玄関
-        // =================================
-
         if (firstFloorMode) {
 
             // 1階側の出口
-
             float doorX = getWidth() * 0.87f;
             float doorY = getHeight() * 0.77f;
 
@@ -721,7 +768,6 @@ public class GameView extends View {
         } else {
 
             // 下側の玄関
-
             float entranceX = getWidth() * 0.523f;
             float entranceY = getHeight() * 0.934f;
 
@@ -741,7 +787,6 @@ public class GameView extends View {
             }
 
             // 上側の扉
-
             float doorX = getWidth() * 0.56f;
             float doorY = getHeight() * 0.12f;
 
@@ -761,10 +806,7 @@ public class GameView extends View {
             }
         }
 
-        // =================================
         // 冷蔵庫
-        // =================================
-
         float fridgeX = getWidth() * 0.23f;
         float fridgeY = getHeight() * 0.09f;
 
@@ -788,10 +830,7 @@ public class GameView extends View {
             return;
         }
 
-        // =================================
         // 浴室
-        // =================================
-
         float starX = getWidth() * 0.78f;
         float starY = getHeight() * 0.12f;
 
@@ -815,10 +854,7 @@ public class GameView extends View {
             return;
         }
 
-        // =================================
         // テレビ
-        // =================================
-
         float tvX = getWidth() * 0.24f;
         float tvY = getHeight() * 0.68f;
 
@@ -925,7 +961,7 @@ public class GameView extends View {
 
         lastFrameTime = 0L;
 
-         Choreographer.getInstance()
+        Choreographer.getInstance()
                 .postFrameCallback(frameCallback);
     }
 
